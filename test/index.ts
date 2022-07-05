@@ -1,6 +1,9 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
+const transactionBoc = "te6ccgECBgEAATMAA69wT2TGr7/z3RDYumcHeQrJZw1UDzepRIsDN7qmpakqysAAAZPhlKz8HrdGqXwTzwHL0QzNokz2/vEXtdYn3Gz7uPMCxnJJNKbQAAGT4ZLEtDYq8lBgABQIBQQBAgUgMDQDAgBpYAAAAJYAAAAEAAYAAAAAAAUZroTxe4+LIgJql1/1Xxqxn95KdodE0heN+mO7Uz4QekCQJrwAoEJmUBfXhAAAAAAAAAAAADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIJyYT3gP0OlPbej0/Uptb3fv84uqQK9d6qfFHr4pi0ljvfDTQLN9rCtqTl05OkkT2OGuBCYi2ff56pewZCPdRJ20QABIA==";
+const bufBlock = Buffer.from(transactionBoc, 'base64');
+
 describe("Greeter", function () {
   it("Should return the new greeting once it's changed", async function () {
     const Greeter = await ethers.getContractFactory("Greeter");
@@ -15,5 +18,15 @@ describe("Greeter", function () {
     await setGreetingTx.wait();
 
     expect(await greeter.greet()).to.equal("Hola, mundo!");
+  });
+
+  it("Should deploy Adapter", async function () {
+    const Adapter = await ethers.getContractFactory("Adapter");
+    const adapter = await Adapter.deploy();
+    await adapter.deployed();
+
+    await adapter.getBoc(bufBlock);
+    // console.log(rTx.);
+    // console.log(bufBlock);
   });
 });
