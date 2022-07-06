@@ -25,7 +25,8 @@ describe("Greeter", function () {
     const adapter = await Adapter.deploy();
     await adapter.deployed();
 
-    await adapter.getBoc(bufBlock);
+    const tx = await adapter.getBoc(bufBlock);
+    // console.log(tx.value);
     // console.log(rTx.);
     // console.log(bufBlock);
   });
