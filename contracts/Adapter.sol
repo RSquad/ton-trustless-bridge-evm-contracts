@@ -52,7 +52,7 @@ contract Adapter {
         bytes cells_data;
     }
 
-    function getBoc(bytes calldata boc) external returns(BocHeader memory header){
+    function parseBocHeader(bytes calldata boc) external returns(BocHeader memory header){
         bytes4 prefix = bytes4(boc[0:4]);
         // console.log("Prefix: '%s'", string(prefix));
         console.logBytes4(prefix);
@@ -185,5 +185,95 @@ contract Adapter {
         //     throw new Error('Too much bytes in BoC serialization');
         // }
         return bocHeader;
+    }
+
+    function deserializeCellData(bytes calldata cellData, uint8 referenceIndexSize) external
+    //  returns(
+    //     uint8 kind, bytes memory bits, uint[4] memory refs, uint residue
+    // )
+    {
+        if (cellData.length < 2) {
+            console.log("Not enough bytes to encode");
+        }
+
+        // uint8 d1 = uint8(cellData[0]);
+        // uint8 d2 = uint8(cellData[1]);
+        uint cursor = 2;
+
+        bool isExotic = (uint8(cellData[0]) & 8) != 0;
+        uint8 refNum = uint8(cellData[0]) % 8;
+        uint8 dataBytesize = uint8(cellData[1]) / 2;
+        // bool fullfilledBytes = (uint8(cellData[1]) % 2) == 0;
+        uint[4] memory refs;
+
+        // Build Cell
+        if (cellData.length < dataBytesize + referenceIndexSize * refNum) {
+            // throw new Error('Not enough bytes to encode cell data');
+            console.log("Not enough bytes to encode cell data");
+        }
+
+        // Cell data
+        /*
+        let kind: CellType = 'ordinary';
+        if (isExotic) {
+            let k = cellData.readUInt8();
+            if (k === 1) {
+                kind = 'pruned';
+            } else if (k === 2) {
+                kind = 'library_reference';
+            } else if (k === 3) {
+                kind = 'merkle_proof';
+            } else if (k === 4) {
+                kind = 'merkle_update';
+            } else {
+                throw Error('Invalid cell type: ' + k);
+            }
+            cellData = cellData.slice(1);
+            dataBytesize--;
+        }
+        */
+        uint8 kind = 0;
+        if (isExotic) {
+            kind = uint8(cellData[cursor]);
+            cursor += 1;
+            dataBytesize--;
+        }
+        
+        bytes memory bits = cellData[cursor: dataBytesize];
+        cursor += dataBytesize;
+
+        // bits.setTopUppedArray(cellData.slice(0, dataBytesize), fullfilledBytes);
+        // cellData = cellData.slice(dataBytesize);
+
+        // References
+        for (uint8 r = 0; r < refNum; r++) {
+            refs[r] = readNBytesUIntFromArray(referenceIndexSize, cellData[cursor:]);
+            // refs.push(readNBytesUIntFromArray(referenceIndexSize, cellData));
+            // cellData = cellData.slice(referenceIndexSize);
+            cursor += referenceIndexSize;
+        }
+
+        // Resolve kind
+        // let cell = new Cell(kind, bits);
+
+        // return ( kind, bits, refs, cursor );
+    }
+
+    function deserializeBoc(bytes calldata boc) external {
+        BocHeader memory header = this.parseBocHeader(boc);
+        console.log("Header has parsed");
+        uint cursor = 0;
+
+        for (uint ci = 0; ci < header.cells_num; ci++) {
+            // (uint8 kind, bytes memory bits, uint[4] memory refs, uint residue) =  this.deserializeCellData(header.cells_data, header.size_bytes);
+            this.deserializeCellData(header.cells_data, header.size_bytes);
+            // cursor = residue;
+            // console.log(cursor);
+        }
+
+        // Topological check
+        // for (uint ci = header.cells_num - 1; ci >= 0; ci--) {
+
+        // }
     }
 }
