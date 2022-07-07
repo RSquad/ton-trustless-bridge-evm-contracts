@@ -27,9 +27,7 @@ struct BagOfCells {
 }
 
 
-struct RootInfo {
-    uint idx;
-}
+
 
 struct CellSerializationInfo {
     bool special;
@@ -46,12 +44,22 @@ struct CellSerializationInfo {
     uint end_offset;
 }
 
+struct CellData {
+    bytes bits;
+    uint[4] refs;
+}
+
+struct RootInfo {
+    uint idx;
+    CellData root;
+}
+
 contract BocHeaderAdapter {
     bytes4 public boc_idx = 0x68ff65f3; 
     bytes4 public boc_idx_crc32c = 0xacc3a728; 
     bytes4 public boc_generic = 0xb5ee9c72;
 
-    function stdBocDeserialize(bytes calldata boc) public {
+    function stdBocDeserialize(bytes calldata boc) public view {
         require(boc.length == 0, "BOC is empty");
 
         // BagOfCells boc;
@@ -73,19 +81,17 @@ contract BocHeaderAdapter {
         // return std::move(root);
     }
 
-    function deserialize(bytes calldata boc) public {
+    function deserialize(bytes calldata boc) public view {
         BagOfCellsInfo memory info = parse_serialized_header(boc);
         
-        if (info.has_crc32c) {
-            // TODO
-        }
+        // if (info.has_crc32c) {
+        //     // TODO
+        // }
 
         BagOfCells memory parsedBoc = BagOfCells(
             info.cell_count // cell_count
         );
-
-        bytes calldata roots_ptr = boc[info.roots_offset:];
-
+        
         require(info.root_count == 1, "Should have only 1 root");
         require(!info.has_cache_bits, "has_cache_bits logic has not realised");
         uint rootIdx = info.cell_count - read_int(boc[info.roots_offset:], info.ref_byte_size) - 1;
@@ -106,12 +112,15 @@ contract BocHeaderAdapter {
 
 
         bytes calldata cells_slice = boc[info.data_offset: info.data_offset + info.data_size];
+        CellData[50] memory cells;
 
         for (uint i = 0; i < parsedBoc.cell_count; i++) {
             uint idx = parsedBoc.cell_count - 1 - i;
             console.log("Parse cell with idx: '%d'", idx);
-            deserialize_cell(idx, cells_slice, custom_index, info.ref_byte_size, info.cell_count);
+            cells[i] = deserialize_cell(idx, cells_slice, custom_index, info.ref_byte_size, info.cell_count);
         }
+
+        console.log("Root idx: %d",rootIdx);
     }
 
     function init_cell_serialization_info(bytes calldata data, uint ref_byte_size) public  pure returns (CellSerializationInfo memory cellInfo) {
@@ -186,28 +195,32 @@ contract BocHeaderAdapter {
         return cells_slice[offs: offs_end];
     }
 
-    function deserialize_cell(uint idx, bytes calldata cells_slice, uint[50] memory custom_index, uint ref_byte_size, uint cell_count) public view {
-        // bytes calldata cell_slice = get_cell_slice(idx, cells_slice, custom_index);
-        // uint[4] memory refs;
-        // CellSerializationInfo memory cell_info = init_cell_serialization_info(cell_slice, ref_byte_size);
-        // require(!(cell_info.end_offset != cell_slice.length), "unused space in cell serialization");
+    function deserialize_cell(uint idx, bytes calldata cells_slice, uint[50] memory custom_index, uint ref_byte_size, uint cell_count) public view returns (CellData memory cell) {
+        bytes calldata cell_slice = get_cell_slice(idx, cells_slice, custom_index);
+        uint[4] memory refs;
+        CellSerializationInfo memory cell_info = init_cell_serialization_info(cell_slice, ref_byte_size);
+        require(!(cell_info.end_offset != cell_slice.length), "unused space in cell serialization");
         // auto refs = td::MutableSpan<td::Ref<Cell>>(refs_buf).substr(0, cell_info.refs_cnt);
-        // for (uint k = 0; k < cell_info.refs_cnt; k++) {
-        //     uint ref_idx = read_int(cell_slice[cell_info.refs_offset + k * ref_byte_size:], ref_byte_size);
-        //     console.log("Read ref idx: %s", ref_idx);
-        //     require(!(ref_idx <= idx), "bag-of-cells error: reference # of cell # is to cell # with smaller index");
-        //     require(!(ref_idx >= cell_count), "refIndex is bigger then cell count");
-        //     refs[k] = cell_count - ref_idx - 1;
-        // }
-        // return create_data_cell(cell_slice, refs);
+        for (uint k = 0; k < cell_info.refs_cnt; k++) {
+            uint ref_idx = read_int(cell_slice[cell_info.refs_offset + k * ref_byte_size:], ref_byte_size);
+            console.log("Read ref idx: %s", ref_idx);
+            require(!(ref_idx <= idx), "bag-of-cells error: reference # of cell # is to cell # with smaller index");
+            require(!(ref_idx >= cell_count), "refIndex is bigger then cell count");
+            refs[k] = cell_count - ref_idx - 1;
+        }
+        cell = create_data_cell(cell_slice, refs, cell_info);
+        return cell;
     }
 
-    function create_data_cell(bytes calldata cell_slice, uint[4] memory refs, CellSerializationInfo calldata cell_info) public {
+    function create_data_cell(bytes calldata cell_slice, uint[4] memory refs, CellSerializationInfo memory cell_info) public pure returns (CellData memory cell) {
         uint bits = get_bits(cell_slice, cell_info);
-
+        bytes calldata bits_slice = cell_slice[cell_info.data_offset: cell_info.data_offset + bits];
+        cell.bits = bits_slice;
+        cell.refs = refs;
+        return cell;
     }
 
-    function get_bits(bytes calldata cell, CellSerializationInfo calldata cell_info) public pure returns (uint){
+    function get_bits(bytes calldata cell, CellSerializationInfo memory cell_info) public pure returns (uint){
         if(cell_info.data_with_bits) {
             require((cell_info.data_len !=0), "no data in cell");
             uint32 last = uint8(cell[cell_info.data_offset + cell_info.data_len - 1]);
