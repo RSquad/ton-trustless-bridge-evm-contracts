@@ -31,10 +31,25 @@ struct RootInfo {
     uint idx;
 }
 
+struct CellSerializationInfo {
+    bool special;
+    uint32 level_mask;
+    bool with_hashes;
+    uint hashes_offset;
+    uint depth_offset;
+    uint data_offset;
+    uint data_len;
+    bool data_with_bits;
+
+    uint refs_offset;
+    uint refs_cnt;
+    uint end_offset;
+}
+
 contract BocHeaderAdapter {
-    bytes4 boc_idx = 0x68ff65f3; 
-    bytes4 boc_idx_crc32c = 0xacc3a728; 
-    bytes4 boc_generic = 0xb5ee9c72;
+    bytes4 public boc_idx = 0x68ff65f3; 
+    bytes4 public boc_idx_crc32c = 0xacc3a728; 
+    bytes4 public boc_generic = 0xb5ee9c72;
 
     function stdBocDeserialize(bytes calldata boc) public {
         require(boc.length == 0, "BOC is empty");
@@ -76,38 +91,145 @@ contract BocHeaderAdapter {
         uint rootIdx = info.cell_count - read_int(boc[info.roots_offset:], info.ref_byte_size) - 1;
         require(!info.has_index, "has index logic has not realised");
 
+        /////////////
+        bytes calldata cells_slice_for_indexes = boc[info.data_offset: info.data_offset + info.data_size];
+        uint[50] memory custom_index;
+        uint cur = 0;
+        for (uint i = 0; i < info.cell_count; i++) {
+            CellSerializationInfo memory cellInfo = init_cell_serialization_info(cells_slice_for_indexes, info.ref_byte_size);
+            cells_slice_for_indexes = cells_slice_for_indexes[cellInfo.end_offset:];
+            cur += cellInfo.end_offset;
+            custom_index[i] = cur;
+            console.log("Custom index at %d : %d", i, cur);
+        }
+        ///////////
+
+
         bytes calldata cells_slice = boc[info.data_offset: info.data_offset + info.data_size];
 
         for (uint i = 0; i < parsedBoc.cell_count; i++) {
             uint idx = parsedBoc.cell_count - 1 - i;
             console.log("Parse cell with idx: '%d'", idx);
-            deserialize_cell(idx, cells_slice);
+            deserialize_cell(idx, cells_slice, custom_index, info.ref_byte_size, info.cell_count);
         }
     }
 
-    // function get_idx_entry(uint index) public pure returns (uint value) {
-    //     value = get_idx_entry_raw(index);
-    //     return value;
-    // }
+    function init_cell_serialization_info(bytes calldata data, uint ref_byte_size) public  pure returns (CellSerializationInfo memory cellInfo) {
+        require(!(data.length < 2), "Not enough bytes");
+        uint8 d1 = uint8(data[0]);
+        uint8 d2 = uint8(data[1]);
+        // cellInfo = init_cell_serialization_info2(uint8(data[0]), uint8(data[1]), ref_byte_size);
+        cellInfo.refs_cnt = d1 & 7;
+        cellInfo.level_mask = d1 >> 5;
+        cellInfo.special = (d1 & 8) != 0;
 
-    // function get_idx_entry_raw(uint index, BagOfCellsInfo calldata info, BagOfCells calldata parsedBoc) public pure returns (uint value) {
-    //     if (index < 0) {
-    //         return 0;
-    //     }
-    //     if (!info.has_index) {
-    //         return parsedBoc.custom_index.at(index);
-    //     } else if (index < info.cell_count && parsedBoc.index_ptr) {
-    //         return info.read_offset(parsedBoc.index_ptr + index * info.offset_byte_size);
-    //     } else {
-    //         // throw ?
-    //         return 0;
-    //     }
-    // }
+        cellInfo.with_hashes = (d1 & 16) != 0;
 
-    function deserialize_cell(uint idx, bytes calldata cells_slice) public view {
-        uint offs = get_idx_entry(idx - 1);
-        uint offs_end = get_idx_entry(idx);
-        bytes calldata cell_slice = cells_slice[offs: offs_end];
+        if (cellInfo.refs_cnt > 4) {
+            require(!(cellInfo.refs_cnt != 7 || !cellInfo.with_hashes), "Invalid first byte");
+            cellInfo.refs_cnt = 0;
+            require(false, "TODO: absent cells");
+        }
+
+        cellInfo.hashes_offset = 2;
+        uint n = count_setbits(cellInfo.level_mask) + 1;
+        cellInfo.depth_offset = cellInfo.hashes_offset + (cellInfo.with_hashes ? n * 32 : 0);
+        cellInfo.data_offset = cellInfo.depth_offset + (cellInfo.with_hashes ? n * 2 : 0);
+        cellInfo.data_len = (d2 >> 1) + (d2 & 1);
+        cellInfo.data_with_bits = (d2 & 1) != 0;
+        cellInfo.refs_offset = cellInfo.data_offset + cellInfo.data_len;
+        cellInfo.end_offset = cellInfo.refs_offset + cellInfo.refs_cnt * ref_byte_size;
+        // return cellInfo;
+        require(!(data.length < cellInfo.end_offset), "Not enough bytes");
+        return cellInfo;
+    }
+
+    // instead of get_hashes_count()
+    function count_setbits(uint32 n) public pure returns (uint cnt) {
+        cnt = 0;
+        while (n > 0) {
+            cnt += n & 1;
+            n = n >> 1;
+        }
+        return cnt;
+    }
+
+
+    function get_idx_entry_raw(uint index, uint[50] memory custom_index) public pure returns(uint value) {
+          if (index < 0) {
+                return 0;
+            }
+            // if (!has_index) {
+            return custom_index[index];
+            // } else if (index < info.cell_count && index_ptr) {
+            //     return info.read_offset(index_ptr + index * info.offset_byte_size);
+            // } else {
+            //     // throw ?
+            //     return 0;
+            // }
+    }
+
+    function get_idx_entry(uint index, uint[50] memory custom_index) public pure returns(uint raw) {
+        raw = get_idx_entry_raw(index, custom_index);
+        // if (info.has_cache_bits) {
+        //     raw /= 2;
+        // }
+        return raw;
+    }
+
+    function get_cell_slice(uint idx, bytes calldata cells_slice, uint[50] memory custom_index) public pure returns(bytes calldata cell_slice) {
+        // uint offs = get_idx_entry(idx - 1, custom_index);
+        // uint offs_end = get_idx_entry(idx, custom_index);
+        
+        uint offs = idx == 0 ? 0 : custom_index[idx - 1];
+        uint offs_end = custom_index[idx];
+        return cells_slice[offs: offs_end];
+    }
+
+    function deserialize_cell(uint idx, bytes calldata cells_slice, uint[50] memory custom_index, uint ref_byte_size, uint cell_count) public view {
+        // bytes calldata cell_slice = get_cell_slice(idx, cells_slice, custom_index);
+        // uint[4] memory refs;
+        // CellSerializationInfo memory cell_info = init_cell_serialization_info(cell_slice, ref_byte_size);
+        // require(!(cell_info.end_offset != cell_slice.length), "unused space in cell serialization");
+        // auto refs = td::MutableSpan<td::Ref<Cell>>(refs_buf).substr(0, cell_info.refs_cnt);
+        // for (uint k = 0; k < cell_info.refs_cnt; k++) {
+        //     uint ref_idx = read_int(cell_slice[cell_info.refs_offset + k * ref_byte_size:], ref_byte_size);
+        //     console.log("Read ref idx: %s", ref_idx);
+        //     require(!(ref_idx <= idx), "bag-of-cells error: reference # of cell # is to cell # with smaller index");
+        //     require(!(ref_idx >= cell_count), "refIndex is bigger then cell count");
+        //     refs[k] = cell_count - ref_idx - 1;
+        // }
+        // return create_data_cell(cell_slice, refs);
+    }
+
+    function create_data_cell(bytes calldata cell_slice, uint[4] memory refs, CellSerializationInfo calldata cell_info) public {
+        uint bits = get_bits(cell_slice, cell_info);
+
+    }
+
+    function get_bits(bytes calldata cell, CellSerializationInfo calldata cell_info) public pure returns (uint){
+        if(cell_info.data_with_bits) {
+            require((cell_info.data_len !=0), "no data in cell");
+            uint32 last = uint8(cell[cell_info.data_offset + cell_info.data_len - 1]);
+            // require(!(!(last & 0x7f)), "overlong encoding");
+            return ((cell_info.data_len - 1) * 8 + 7 - count_trailing_zeroes_non_zero32(last));
+        } else {
+            return cell_info.data_len * 8;
+        }
+    }
+
+    function count_trailing_zeroes_non_zero32(uint32 n) public pure returns (uint) {
+        uint bits = 0;
+        uint x = n;
+
+        if (x > 0) {
+            while((x & 1) == 0) {
+                ++bits;
+                x >>= 1;
+            }
+        }
+
+        return bits;
     }
 
     function parse_serialized_header(bytes calldata boc) public view returns (BagOfCellsInfo memory header) {
