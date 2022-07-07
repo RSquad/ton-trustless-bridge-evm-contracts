@@ -83,7 +83,7 @@ contract BocHeaderAdapter {
 
     function deserialize(bytes calldata boc) public view {
         BagOfCellsInfo memory info = parse_serialized_header(boc);
-        
+        console.log("ref byte size: %d", info.ref_byte_size);
         // if (info.has_crc32c) {
         //     // TODO
         // }
@@ -121,15 +121,23 @@ contract BocHeaderAdapter {
             idx = info.cell_count - 1 - i;
             console.log("Parse cell with idx: '%d'", idx);
             cells[i] = deserialize_cell(idx, cells_slice, custom_index, info.ref_byte_size, info.cell_count);
-            console.log("CELL");
+            console.log("CELL bits:");
             console.logBytes(cells[i].bits);
-            console.log(cells[i].refs[0]);
-            console.log(cells[i].refs[1]);
-            console.log(cells[i].refs[2]);
-            console.log(cells[i].refs[3]);
+            console.log("CELL refs: %d %d", cells[i].refs[0], cells[i].refs[1]);
+            console.log("CELL refs: %d %d", cells[i].refs[2], cells[i].refs[3]);
         }
 
         
+        uint data;
+        data = read_int_memory(cells[5].bits, 1, 0) >> 4;
+        console.log("prefix: %d", data);
+        // addressHash
+        data = read_int_memory(cells[5].bits, 32, 1) >> 4; // взять 4 бита из 0-го байта и дописать в начало
+        console.log("addressHash: %d", data);
+        // lt
+        data = read_int_memory(cells[5].bits, 10, 31) << 256 - 64 + 4 >> 256 - 64 + 8;
+        console.log("lt: %d", data);
+
     }
 
     function init_cell_serialization_info(bytes calldata data, uint ref_byte_size) public  pure returns (CellSerializationInfo memory cellInfo) {
@@ -208,6 +216,9 @@ contract BocHeaderAdapter {
         console.log("Start deserialize");
         bytes calldata cell_slice = get_cell_slice(idx, cells_slice, custom_index);
         uint[4] memory refs;
+        for(uint i = 0; i < 4; i++) {
+            refs[i] = 255;
+        }
         CellSerializationInfo memory cell_info = init_cell_serialization_info(cell_slice, ref_byte_size);
         console.log("got cell info");
         require(!(cell_info.end_offset != cell_slice.length), "unused space in cell serialization");
@@ -231,7 +242,7 @@ contract BocHeaderAdapter {
         console.log("data_offset: %d, bits: %d", cell_info.data_offset, bits);
         console.log("cell slice length (bytes): %d", cell_slice.length);
         // bytes calldata bits_slice = cell_slice[cell_info.data_offset: cell_info.data_offset + bits];
-        bytes calldata bits_slice = cell_slice;
+        bytes calldata bits_slice = cell_slice[cell_info.data_offset:];
         cell.bits = bits_slice;
         cell.refs = refs;
         return cell;
@@ -344,6 +355,17 @@ contract BocHeaderAdapter {
         uint cursor = 0;
         while (size > 0) {
             res = (res << 8) + uint8(data[cursor]);
+            cursor++;
+            --size;
+        }
+        return res;
+    }
+
+    function read_int_memory(bytes memory data, uint size, uint start) public pure returns(uint value) {
+        uint res = 0;
+        uint cursor = 0;
+        while (size > 0) {
+            res = (res << 8) + uint8(data[start + cursor]);
             cursor++;
             --size;
         }
