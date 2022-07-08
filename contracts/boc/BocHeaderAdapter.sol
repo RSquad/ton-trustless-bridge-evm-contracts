@@ -6,20 +6,23 @@ import "./BocHeaderInfoAdapter.sol";
 import "./TreeOfCellsAdapter.sol";
 import "./UtilsLib.sol";
 
-struct BagOfCells {
-    uint cell_count;    
-}
+struct Transaction {
+   uint checkCode; 
+   bytes32 addressHash;
+   uint lt;
+   bytes32 prevTransHash;
+   uint prevTransLt;
 
+   uint time;
+   uint OutMesagesCount;
 
-
-struct RootInfo {
-    uint idx;
-    CellData root;
+   uint oldStatus;
+   uint newStatus;
 }
 
 contract BocHeaderAdapter is BocHeaderInfoAdapter, TreeOfCellsAdapter {
 
-    function deserialize(bytes calldata boc) public view {
+    function deserialize(bytes calldata boc) public view returns(Transaction memory transaction) {
         BagOfCellsInfo memory info = parse_serialized_header(boc);
         
         require(info.root_count == 1, "Should have only 1 root");
@@ -35,26 +38,53 @@ contract BocHeaderAdapter is BocHeaderInfoAdapter, TreeOfCellsAdapter {
         console.log("Root idx: %d",rootIdx);
         
         CellData[50] memory cells = get_tree_of_cells(boc, info);
+        uint cursor = 0;
         
-        uint data;
-        data = read_int_memory(cells[rootIdx].bits, 1, 0) >> 4;
-        console.log("prefix: %d", data);
+        transaction.checkCode = readBits(cells[rootIdx].bits, cursor, 4);
+        cursor += 4;
+        
         // addressHash
-        data = read_int_memory(cells[rootIdx].bits, 32, 1) >> 4; // взять 4 бита из 0-го байта и дописать в начало
-        console.log("addressHash: %d", data);
+        transaction.addressHash = bytes32(readBits(cells[rootIdx].bits, cursor, 32 * 8));
+        cursor += 32 * 8;
         // lt
-        data = read_int_memory(cells[rootIdx].bits, 10, 31) << 256 - 64 + 4 >> 256 - 64 + 8;
-        console.log("lt: %d", data);
+        transaction.lt = readBits(cells[rootIdx].bits, cursor, 64);
+        cursor += 64;
 
+        transaction.prevTransHash = bytes32(readBits(cells[rootIdx].bits, cursor, 32 * 8));
+        cursor += 32 * 8;
+        transaction.prevTransLt = readBits(cells[rootIdx].bits, cursor, 64);
+        cursor += 64;
+
+        transaction.time = readBits(cells[rootIdx].bits, cursor, 32);
+        cursor += 32;
+
+        transaction.OutMesagesCount = readBits(cells[rootIdx].bits, cursor, 15);
+        cursor += 15;
+
+        transaction.oldStatus = readBits(cells[rootIdx].bits, cursor, 2);
+        cursor += 2;
+        transaction.newStatus = readBits(cells[rootIdx].bits, cursor, 2);
+        cursor += 2;
+
+        // messagesRef = cells[rootIdx].refs[0]
+        // hash update = cells[rootIdx].refs[1]
+        // description = cells[rootIdx].refs[2]
+
+
+        return transaction;
     }
 
-    function read_int_memory(bytes memory data, uint size, uint start) public pure returns(uint value) {
-        uint res = 0;
-        uint cursor = 0;
+    function readBits(bytes memory data, uint start, uint size) public pure returns (uint res) {
+        res = 0;
+        uint cursor = start / 8;
+        uint bytesStart = start % 8;
         while (size > 0) {
-            res = (res << 8) + uint8(data[start + cursor]);
-            cursor++;
-            --size;
+            res = (res << 1) + (uint8(data[cursor]) << bytesStart >> 7 );
+            bytesStart = (bytesStart + 1) % 8;
+            if (bytesStart == 0) {
+                cursor ++;
+            }
+            size --;
         }
         return res;
     }
