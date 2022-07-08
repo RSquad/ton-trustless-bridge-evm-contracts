@@ -21,7 +21,14 @@ describe("Greeter", function () {
   });
 
   it("Should deploy Adapter", async function () {
-    const Adapter = await ethers.getContractFactory("Adapter");
+    const lib = await ethers.getContractFactory("UtilsLib");
+    const libC = await lib.deploy();
+    await libC.deployed();
+    const Adapter = await ethers.getContractFactory("Adapter", {
+      libraries: {
+        UtilsLib: libC.address,
+      },
+    });
     const adapter = await Adapter.deploy();
     await adapter.deployed();
 
