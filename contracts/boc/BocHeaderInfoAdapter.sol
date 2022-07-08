@@ -3,24 +3,8 @@ pragma solidity >=0.8.5 <0.9.0;
 
 import "hardhat/console.sol";
 import "./UtilsLib.sol";
+import "./types.sol";
 
-struct BagOfCellsInfo {
-    bytes4 magic;
-    uint root_count;
-    uint cell_count;
-    uint absent_count;
-    uint ref_byte_size;
-    uint offset_byte_size;
-    bool has_index;
-    bool has_roots;
-    bool has_crc32c;
-    bool has_cache_bits;
-    uint roots_offset; 
-    uint index_offset; 
-    uint data_offset; 
-    uint data_size; 
-    uint total_size;
-}
 
 contract BocHeaderInfoAdapter {
     bytes4 public boc_idx = 0x68ff65f3; 
