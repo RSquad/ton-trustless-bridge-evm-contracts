@@ -20,8 +20,11 @@ struct BagOfCellsInfo {
 }
 
 struct CellData {
+    bool special;
     bytes bits;
     uint[4] refs;
+    uint cursor;
+    uint8 cursorRef;
 }
 
 struct CellSerializationInfo {
