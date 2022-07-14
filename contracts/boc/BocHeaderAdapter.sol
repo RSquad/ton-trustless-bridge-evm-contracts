@@ -190,6 +190,13 @@ contract BocHeaderAdapter is TreeOfCellsAdapter {
                 if (cellIdxs[i] != 255) {
                     console.log("CELL IDX:", cellIdxs[i]);
                     messagesHeader.outMessages[j] = parseMessage(cells, readCell(cells, cellIdxs[i]));
+                    uint idx = messagesHeader.outMessages[j].bodyIdx;
+                    console.logBytes(cells[idx].bits);
+                    console.log("CELL cursor, idx:", cells[idx].cursor, idx);
+                    address eth_address = address(uint160(readUint(cells, idx, 160)));
+                    console.log("ETH address:",eth_address);
+                    uint amount = readUint64(cells, idx, 64);
+                    console.log("Amount:", amount);
                     j++;
                 }
             }
@@ -199,8 +206,8 @@ contract BocHeaderAdapter is TreeOfCellsAdapter {
     }
 
     function parseMessage(CellData[50] memory cells, uint messagesIdx) public view returns (Message memory message) {
-        console.log(cells[messagesIdx].cursor);
-        console.logBytes(cells[messagesIdx].bits);
+        // console.log(cells[messagesIdx].cursor);
+        // console.logBytes(cells[messagesIdx].bits);
         message.info = parseCommonMsgInfo(cells, messagesIdx);
         bool hasInit = readBool(cells, messagesIdx);
         if (hasInit) {
@@ -262,10 +269,16 @@ contract BocHeaderAdapter is TreeOfCellsAdapter {
         if (Type == 0) {
             return addr;
         }
-        require(Type == 2, "Only STD address supported");
+        if (Type == 1) {
+            uint16 len = uint16(readUint64(cells, messagesIdx, 9));
+            addr.hash = readBytes32_2(cells, messagesIdx, len);
+            return addr;
+        }
+        console.log("Address type:", Type);
+        require(Type == 2, "Only STD address supported TYPE ERROR");
         uint8 bit = readBit(cells, messagesIdx);
         
-        require(bit == 0, "Only STD address supported");
+        require(bit == 0, "Only STD address supported BIT ERROR");
         
         addr.wc = readUint8(cells, messagesIdx, 8);
 
@@ -341,7 +354,7 @@ contract BocHeaderAdapter is TreeOfCellsAdapter {
         return value;
     }
 
-    function readUint64(CellData[50] memory cells, uint cellIdx, uint8 size) public pure returns(uint64 value) {
+    function readUint64(CellData[50] memory cells, uint cellIdx, uint16 size) public pure returns(uint64 value) {
         require(size <= 64, "max size is 64 bits");
         value = 0;
         while (size > 0) {
@@ -350,6 +363,29 @@ contract BocHeaderAdapter is TreeOfCellsAdapter {
         }
 
         return value;
+    }
+
+    function readUint(CellData[50] memory cells, uint cellIdx, uint16 size) public pure returns(uint value) {
+        require(size <= 256, "max size is 64 bits");
+        value = 0;
+        while (size > 0) {
+            value = (value << 1) + readBit(cells, cellIdx);
+            size--;
+        }
+
+        return value;
+    }
+
+    function readBytes32_2(CellData[50] memory cells, uint cellIdx, uint size) public view returns(bytes32 buffer) {
+    // function readBytes32(CellData[50] memory cells, uint cellIdx, uint sizeb) public view {
+        uint value = 0;
+        while (size > 0) {
+            value = (value << 1) + readBit(cells, cellIdx);
+            // console.log(value);
+            size--;
+        }
+        buffer = bytes32(value);
+        return buffer;
     }
 
     function readBytes32(CellData[50] memory cells, uint cellIdx, uint sizeb) public view returns(bytes32 buffer) {
