@@ -6,12 +6,12 @@ import "./UtilsLib.sol";
 import "./types.sol";
 
 
-contract BocHeaderInfoAdapter {
-    bytes4 public boc_idx = 0x68ff65f3; 
-    bytes4 public boc_idx_crc32c = 0xacc3a728; 
-    bytes4 public boc_generic = 0xb5ee9c72;
+library BocHeaderInfoAdapter {
+    bytes4 public constant boc_idx = 0x68ff65f3; 
+    bytes4 public constant boc_idx_crc32c = 0xacc3a728; 
+    bytes4 public constant boc_generic = 0xb5ee9c72;
 
-    function parse_serialized_header(bytes calldata boc) public view returns (BagOfCellsInfo memory header) {
+    function parse_serialized_header(bytes calldata boc) public pure returns (BagOfCellsInfo memory header) {
         uint sz = boc.length;
         require(!(sz < 4), "Not enough bytes");
 

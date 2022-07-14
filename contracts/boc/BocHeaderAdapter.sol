@@ -42,6 +42,7 @@ struct MessagesHeader {
    bool hasOutMessages;
 
    Message inMessage;
+   Message[5] outMessages;
 }
 
 struct TransactionHeader {
@@ -62,7 +63,7 @@ struct TransactionHeader {
    MessagesHeader messages;
 }
 
-contract BocHeaderAdapter is BocHeaderInfoAdapter, TreeOfCellsAdapter {
+contract BocHeaderAdapter is TreeOfCellsAdapter {
     function parseTransactionHeader(CellData[50] memory cells, uint rootIdx) public view returns(TransactionHeader memory transaction) {
         transaction.checkCode = readUint8(cells, rootIdx, 4);
         
@@ -87,8 +88,8 @@ contract BocHeaderAdapter is BocHeaderInfoAdapter, TreeOfCellsAdapter {
     function parseCurrencyCollection(CellData[50] memory cells, uint cellIdx) public view returns (bytes32 coins) {
         coins = readCoins(cells, cellIdx);
         bool check = readBool(cells, cellIdx);
-        console.log("has coind %b", check);
         if (check) {
+            console.log("has coind %b", check);
             uint dcIdx = readCell(cells, cellIdx);
             if (!cells[dcIdx].special) {
                 parseDict(cells, dcIdx, 32);
@@ -98,52 +99,64 @@ contract BocHeaderAdapter is BocHeaderInfoAdapter, TreeOfCellsAdapter {
         return coins;
     }
 
-    function parseDict(CellData[50] memory cells, uint cellIdx, uint keySize) public pure {
-        doParse(cells, cellIdx, keySize);
+    function parseDict(CellData[50] memory cells, uint cellIdx, uint keySize) public view returns(uint[5] memory cellIdxs) {
+        for (uint i = 0; i < 5; i++) {
+                cellIdxs[i] = 255;
+            }
+        doParse(0, cells, cellIdx, keySize, cellIdxs);
+        return cellIdxs;
     }
 
-    function doParse(CellData[50] memory cells, uint cellIdx, uint n) public pure {
+    function doParse(uint prefix, CellData[50] memory cells, uint cellIdx, uint n, uint[5] memory cellIdxs) public view {
         uint prefixLength = 0;
-        string memory pp = "";
+        uint pp = prefix;
+
+        
 
         // lb0
-        if(readBool(cells, cellIdx)) {
+        if(!readBool(cells, cellIdx)) {
             // Short label detected
+            console.log("Short label detected");
             prefixLength = readUnaryLength(cells, cellIdx);
 
             for (uint i = 0; i < prefixLength; i++) {
-                pp = string.concat(pp, readBool(cells, cellIdx) ? "1" : "0");
+                pp = pp << 1 + readBit(cells, cellIdx);
             }
         } else {
             // lb1
-            if (readBool(cells, cellIdx)) {
+            if (!readBool(cells, cellIdx)) {
                 // long label detected
+                console.log("Long label detected");
                 prefixLength = readUint64(cells, cellIdx, uint8(log2Ceil(n)));
                 for (uint i = 0; i < prefixLength; i++) {
-                    pp = string.concat(pp, readBool(cells, cellIdx) ? "1" : "0");
+                    pp = pp << 1 + readBit(cells, cellIdx);
                 }
             } else {
                 // Same label detected
-                string memory bit = readBool(cells, cellIdx) ? "1" : "0";
+                console.log("Same label detected");
+                uint bit = readBit(cells, cellIdx);
                 prefixLength = readUint64(cells, cellIdx, uint8(log2Ceil(n)));
                 for (uint i = 0; i < prefixLength; i++) {
-                    pp = bit;
+                    pp = pp << 1 + bit;
                 }
             }
         }
-
+        console.log("Prefix pp: %d", pp);
+        console.log(n, prefixLength, cellIdx, uint8(log2Ceil(n)));
         if (n - prefixLength == 0) {
             // end
+            cellIdxs[pp] = cellIdx;
             // res.set(new BN(pp, 2).toString(10), extractor(slice));
         } else {
             uint leftIdx = readCell(cells, cellIdx);
             uint rightIdx = readCell(cells, cellIdx);
+            console.log("idx: ",leftIdx, rightIdx);
             // NOTE: Left and right branches are implicitly contain prefixes '0' and '1'
-            if (!cells[leftIdx].special) {
-                // doParse(string.concat(pp,"0"), left.beginParse(), n - prefixLength - 1, res, extractor);
+            if (leftIdx != 255 && !cells[leftIdx].special) {
+                doParse(pp << 1, cells, leftIdx, n - prefixLength - 1, cellIdxs);
             }
-            if (!cells[rightIdx].special) {
-                // doParse(string.concat(pp,"1"), right.beginParse(), n - prefixLength - 1, res, extractor);
+            if (rightIdx != 255 && !cells[rightIdx].special) {
+                doParse(pp << 1 + 1, cells, rightIdx, n - prefixLength - 1, cellIdxs);
             }
         }
     }
@@ -164,18 +177,30 @@ contract BocHeaderAdapter is BocHeaderInfoAdapter, TreeOfCellsAdapter {
         messagesHeader.hasInMessage = readBool(cells, messagesIdx);
         messagesHeader.hasOutMessages = readBool(cells, messagesIdx);
         console.log(messagesHeader.hasInMessage, messagesHeader.hasOutMessages);
+        console.log("message refs:", cells[messagesIdx].refs[0],cells[messagesIdx].refs[1],cells[messagesIdx].refs[2] );
+        console.log("out message refs:", cells[cells[messagesIdx].refs[1]].refs[0],cells[cells[messagesIdx].refs[1]].refs[1],cells[cells[messagesIdx].refs[1]].refs[2] );
         if(messagesHeader.hasInMessage) {
-            messagesHeader.inMessage = parseMessage(cells, cells[messagesIdx].refs[0]);
+            messagesHeader.inMessage = parseMessage(cells, readCell(cells, messagesIdx));
         }
+        
         if(messagesHeader.hasOutMessages) {
-            parseDict(cells, readCell(cells, messagesIdx), 15);
+            uint[5] memory cellIdxs = parseDict(cells, readCell(cells, messagesIdx), 15);
+            uint j = 0;
+            for (uint i = 0; i < 5; i++) {
+                if (cellIdxs[i] != 255) {
+                    console.log("CELL IDX:", cellIdxs[i]);
+                    messagesHeader.outMessages[j] = parseMessage(cells, readCell(cells, cellIdxs[i]));
+                    j++;
+                }
+            }
         }
-
         
         return messagesHeader;
     }
 
     function parseMessage(CellData[50] memory cells, uint messagesIdx) public view returns (Message memory message) {
+        console.log(cells[messagesIdx].cursor);
+        console.logBytes(cells[messagesIdx].bits);
         message.info = parseCommonMsgInfo(cells, messagesIdx);
         bool hasInit = readBool(cells, messagesIdx);
         if (hasInit) {
@@ -199,12 +224,10 @@ contract BocHeaderAdapter is BocHeaderInfoAdapter, TreeOfCellsAdapter {
     function parseCommonMsgInfo(CellData[50] memory cells, uint messagesIdx) public view returns (RawCommonMessageInfo memory msgInfo) {
         if (!readBool(cells, messagesIdx)) {
             // internal
-            msgInfo.ihrDisabled = readBits(cells[messagesIdx].bits, cells[messagesIdx].cursor, 1) == 1;
-            cells[messagesIdx].cursor += 1;
-            msgInfo.bounce = readBits(cells[messagesIdx].bits, cells[messagesIdx].cursor, 1) == 1;
-            cells[messagesIdx].cursor += 1;
-            msgInfo.bounced = readBits(cells[messagesIdx].bits, cells[messagesIdx].cursor, 1) == 1;
-            cells[messagesIdx].cursor += 1;
+            console.log("internal");
+            msgInfo.ihrDisabled = readBool(cells, messagesIdx);
+            msgInfo.bounce = readBool(cells, messagesIdx);
+            msgInfo.bounced = readBool(cells, messagesIdx);
 
             msgInfo.src = readAddress(cells, messagesIdx);
             msgInfo.dest = readAddress(cells, messagesIdx);
@@ -216,6 +239,7 @@ contract BocHeaderAdapter is BocHeaderInfoAdapter, TreeOfCellsAdapter {
             msgInfo.createdAt = readUint32(cells, messagesIdx, 32);
         } else if (readBool(cells, messagesIdx)) {
             // Outgoing external
+            console.log("Outgoing external");
             msgInfo.src = readAddress(cells, messagesIdx);
             msgInfo.dest = readAddress(cells, messagesIdx);
             
@@ -223,6 +247,7 @@ contract BocHeaderAdapter is BocHeaderInfoAdapter, TreeOfCellsAdapter {
             msgInfo.createdAt = readUint32(cells, messagesIdx, 32);
         } else {
             // Incoming external
+            console.log("Incoming external");
             msgInfo.src = readAddress(cells, messagesIdx);
             msgInfo.dest = readAddress(cells, messagesIdx);
             msgInfo.importFee = readCoins(cells, messagesIdx);
@@ -231,29 +256,26 @@ contract BocHeaderAdapter is BocHeaderInfoAdapter, TreeOfCellsAdapter {
         return msgInfo;
     }
 
-    function readAddress(CellData[50] memory cells, uint messagesIdx) public pure returns(TonAddress memory addr) {
-        uint8 Type = uint8(readBits(cells[messagesIdx].bits, cells[messagesIdx].cursor, 2));
-        cells[messagesIdx].cursor += 2;
+    function readAddress(CellData[50] memory cells, uint messagesIdx) public view returns(TonAddress memory addr) {
+        uint8 Type = readUint8(cells, messagesIdx, 2);
+        
         if (Type == 0) {
             return addr;
         }
         require(Type == 2, "Only STD address supported");
-        uint bit = readBits(cells[messagesIdx].bits, cells[messagesIdx].cursor, 1);
-        cells[messagesIdx].cursor += 1;
+        uint8 bit = readBit(cells, messagesIdx);
+        
         require(bit == 0, "Only STD address supported");
+        
+        addr.wc = readUint8(cells, messagesIdx, 8);
 
-        addr.wc = uint8(readBits(cells[messagesIdx].bits, cells[messagesIdx].cursor, 8));
-        cells[messagesIdx].cursor += 8;
-
-
-        addr.hash = bytes32(readBits(cells[messagesIdx].bits, cells[messagesIdx].cursor, 32 * 8));
-        cells[messagesIdx].cursor += 32 * 8;
+        addr.hash = readBytes32(cells, messagesIdx, 32);
 
         return addr;
     }
 
     function deserialize(bytes calldata boc) public view returns(TransactionHeader memory transaction) {
-        BagOfCellsInfo memory info = parse_serialized_header(boc);
+        BagOfCellsInfo memory info = BocHeaderInfoAdapter.parse_serialized_header(boc);
         
         require(info.root_count == 1, "Should have only 1 root");
         // if (info.has_crc32c) {
@@ -269,6 +291,11 @@ contract BocHeaderAdapter is BocHeaderInfoAdapter, TreeOfCellsAdapter {
         
         CellData[50] memory cells = get_tree_of_cells(boc, info);
         
+        for (uint i = 0; i < 50; i++) {
+            console.logBytes(cells[i].bits);
+            console.log("==============");
+        }
+
         transaction = parseTransactionHeader(cells, rootIdx);
         console.log("ROOT CURSOR: %d", cells[rootIdx].cursor); // CURSOR: 695
         transaction.messages =  parseMessagesHeader(cells, readCell(cells, rootIdx));
@@ -278,21 +305,6 @@ contract BocHeaderAdapter is BocHeaderInfoAdapter, TreeOfCellsAdapter {
         // description = cells[rootIdx].refs[2]
 
         return transaction;
-    }
-
-    function readBits(bytes memory data, uint start, uint size) public pure returns (uint res) {
-        res = 0;
-        uint cursor = start / 8;
-        uint bytesStart = start % 8;
-        while (size > 0 && cursor < data.length) {
-            res = (res << 1) + (uint8(data[cursor]) << bytesStart >> 7 );
-            bytesStart = (bytesStart + 1) % 8;
-            if (bytesStart == 0) {
-                cursor ++;
-            }
-            size --;
-        }
-        return res;
     }
 
     function readBit(CellData[50] memory cells, uint cellIdx) public pure returns(uint8 value) {
@@ -374,7 +386,7 @@ contract BocHeaderAdapter is BocHeaderInfoAdapter, TreeOfCellsAdapter {
         for(n = 0; x > 1; x>>=1) {
             n += 1;
 
-            if (x & 1 == 1) {
+            if (x & 1 == 1 && !check) {
                 n += 1;
                 check = true;
             }
