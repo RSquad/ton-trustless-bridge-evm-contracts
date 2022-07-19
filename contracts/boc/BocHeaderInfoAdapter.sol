@@ -49,41 +49,41 @@ library BocHeaderInfoAdapter {
             header.has_crc32c = header.magic == boc_idx_crc32c;
         }
         
-        require(!(header.has_cache_bits && !header.has_index));
+        require(!(header.has_cache_bits && !header.has_index), "bag-of-cells: invalid header");
         
         header.ref_byte_size = flags_byte & 7;
-        require(!(header.ref_byte_size > 4 || header.ref_byte_size < 1));
-        require(!(sz < 6));
+        require(!(header.ref_byte_size > 4 || header.ref_byte_size < 1), "bag-of-cells: invalid header");
+        require(!(sz < 6), "bag-of-cells: invalid header");
         
         header.offset_byte_size = uint8(boc[5]);
-        require(!(header.offset_byte_size > 8 || header.offset_byte_size < 1));
+        require(!(header.offset_byte_size > 8 || header.offset_byte_size < 1), "bag-of-cells: invalid header");
         header.roots_offset = 6 + 3 * header.ref_byte_size + header.offset_byte_size;
         ptr += 6;
         sz -= 6;
-        require(!(sz < header.ref_byte_size));
+        require(!(sz < header.ref_byte_size), "bag-of-cells: invalid header");
         
         header.cell_count = UtilsLib.read_int(boc[ptr:], header.ref_byte_size);
-        require(!(header.cell_count <= 0));
-        require(!(sz < 2 * header.ref_byte_size));
+        require(!(header.cell_count <= 0), "bag-of-cells: invalid header");
+        require(!(sz < 2 * header.ref_byte_size), "bag-of-cells: invalid header");
         header.root_count = UtilsLib.read_int(boc[ptr + header.ref_byte_size:], header.ref_byte_size);
-        require(!(header.root_count <= 0));
+        require(!(header.root_count <= 0), "bag-of-cells: invalid header");
         header.index_offset = header.roots_offset;
         if (header.magic == boc_generic) {
             header.index_offset += header.root_count * header.ref_byte_size;
             header.has_roots = true;
         } else {
-            require(!(header.root_count != 1));
+            require(!(header.root_count != 1), "bag-of-cells: invalid header");
         }
         header.data_offset = header.index_offset;
         if(header.has_index) {
             header.data_offset += header.cell_count * header.offset_byte_size;
         }
-        require(!(sz < 3 * header.ref_byte_size));
+        require(!(sz < 3 * header.ref_byte_size), "bag-of-cells: invalid header");
         header.absent_count = UtilsLib.read_int(boc[ptr + 2 * header.ref_byte_size:], header.ref_byte_size);
-        require(!(header.absent_count < 0 || header.absent_count > header.cell_count));
-        require(!(sz < 3 * header.ref_byte_size + header.offset_byte_size));
+        require(!(header.absent_count < 0 || header.absent_count > header.cell_count), "bag-of-cells: invalid header");
+        require(!(sz < 3 * header.ref_byte_size + header.offset_byte_size), "bag-of-cells: invalid header");
         header.data_size = UtilsLib.read_int(boc[ptr + 3 * header.ref_byte_size:], header.offset_byte_size);
-        require(!(header.data_size > header.cell_count << 10));
+        require(!(header.data_size > header.cell_count << 10), "bag-of-cells: invalid header");
         
         header.total_size = header.data_offset + header.data_size + (header.has_crc32c ? 4 : 0);
         return header;

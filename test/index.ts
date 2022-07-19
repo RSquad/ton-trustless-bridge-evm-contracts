@@ -50,10 +50,11 @@ describe("Greeter", function () {
     const adapter = await Adapter.deploy();
     await adapter.deployed();
 
-    const res = await adapter.deserialize(bufBlock);
+    // const res = await adapter.deserialize(bufBlock);
+    const res = await adapter.deserializeMsgData(bufBlock);
     console.log("RESULT OF DESERIALIZE: ===========");
 
-    console.log(res.messages.outMessages[0]);
+    console.log(res);
     // const tx = await adapter.deserializeBoc(bufBlock);
     // console.log(tx.value);
     // console.log(rTx.);
