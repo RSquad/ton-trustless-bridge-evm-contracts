@@ -1,7 +1,7 @@
 {
   "name": "hardhat-project",
   "scripts": {
-    "test": "npx hardhat test"
+    "test": "npx hardhat test --show-stack-traces"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.6",

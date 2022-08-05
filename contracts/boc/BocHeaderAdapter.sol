@@ -23,13 +23,14 @@ struct BagOfCellsInfo {
 
     struct CellData {
         bool special;
+        uint8 cellType;
         bytes bits;
         uint[4] refs;
         uint cursor;
         uint8 cursorRef;
-        bytes32 _hash;
+        bytes32[4] _hash;
         uint32 level_mask;
-        uint16 depth;
+        uint16[4] depth;
     }
 
     struct CellSerializationInfo {
@@ -109,7 +110,13 @@ contract BocHeaderAdapter {
     bytes4 public constant boc_idx_crc32c = 0xacc3a728;
     bytes4 public constant boc_generic = 0xb5ee9c72;
 
-    function parse_serialized_header(bytes calldata boc) public pure returns (BagOfCellsInfo memory header) {
+    uint8 public constant OrdinaryCell = 255;
+    uint8 public constant PrunnedBranchCell = 1;
+    uint8 public constant LibraryCell = 2;
+    uint8 public constant MerkleProofCell = 3;
+    uint8 public constant MerkleUpdateCell = 4;
+
+    function parse_serialized_header(bytes calldata boc) public view returns (BagOfCellsInfo memory header) {
         uint sz = boc.length;
         require(!(sz < 4), "Not enough bytes");
 
@@ -131,7 +138,9 @@ contract BocHeaderAdapter {
             0, // data_size
             0 // total_size
         );
-
+        console.log("Header magic");
+        console.logBytes(boc);
+        console.logBytes4(header.magic);
         require(!(header.magic != boc_generic &&
         header.magic != boc_idx &&
         header.magic != boc_idx_crc32c), "wrong boc type");
@@ -187,7 +196,7 @@ contract BocHeaderAdapter {
         return header;
     }
 
-    function parseTransactionHeader(CellData[50] memory cells, uint rootIdx) public pure returns (TransactionHeader memory transaction) {
+    function parseTransactionHeader(CellData[100] memory cells, uint rootIdx) public pure returns (TransactionHeader memory transaction) {
         transaction.checkCode = readUint8(cells, rootIdx, 4);
 
         // addressHash
@@ -206,7 +215,7 @@ contract BocHeaderAdapter {
         return transaction;
     }
 
-    function parseCurrencyCollection(CellData[50] memory cells, uint cellIdx) public pure returns (bytes32 coins) {
+    function parseCurrencyCollection(CellData[100] memory cells, uint cellIdx) public pure returns (bytes32 coins) {
         coins = readCoins(cells, cellIdx);
         bool check = readBool(cells, cellIdx);
         if (check) {
@@ -219,7 +228,7 @@ contract BocHeaderAdapter {
         return coins;
     }
 
-    function parseDict(CellData[50] memory cells, uint cellIdx, uint keySize) public pure returns (uint[5] memory cellIdxs) {
+    function parseDict(CellData[100] memory cells, uint cellIdx, uint keySize) public pure returns (uint[5] memory cellIdxs) {
         for (uint i = 0; i < 5; i++) {
             cellIdxs[i] = 255;
         }
@@ -227,7 +236,7 @@ contract BocHeaderAdapter {
         return cellIdxs;
     }
 
-    function doParse(uint prefix, CellData[50] memory cells, uint cellIdx, uint n, uint[5] memory cellIdxs) public pure {
+    function doParse(uint prefix, CellData[100] memory cells, uint cellIdx, uint n, uint[5] memory cellIdxs) public pure {
         uint prefixLength = 0;
         uint pp = prefix;
 
@@ -276,7 +285,7 @@ contract BocHeaderAdapter {
         }
     }
 
-    function readCoins(CellData[50] memory cells, uint cellIdx) public pure returns (bytes32 value) {
+    function readCoins(CellData[100] memory cells, uint cellIdx) public pure returns (bytes32 value) {
         uint8 Bytes = readUint8(cells, cellIdx, 4);
 
         if (Bytes == 0) {
@@ -285,7 +294,7 @@ contract BocHeaderAdapter {
         return readBytes32(cells, cellIdx, Bytes);
     }
 
-    function parseMessagesHeader(CellData[50] memory cells, uint messagesIdx) public pure returns (MessagesHeader memory messagesHeader) {
+    function parseMessagesHeader(CellData[100] memory cells, uint messagesIdx) public pure returns (MessagesHeader memory messagesHeader) {
         messagesHeader.hasInMessage = readBool(cells, messagesIdx);
         messagesHeader.hasOutMessages = readBool(cells, messagesIdx);
         if (messagesHeader.hasInMessage) {
@@ -306,7 +315,7 @@ contract BocHeaderAdapter {
         return messagesHeader;
     }
 
-    function getDataFromMessages(CellData[50] memory cells, Message[5] memory outMessages) public pure returns (TestData memory data) {
+    function getDataFromMessages(CellData[100] memory cells, Message[5] memory outMessages) public pure returns (TestData memory data) {
         for (uint i = 0; i < 5; i++) {
             if (outMessages[i].info.dest.hash == bytes32(uint(0xc0470ccf))) {
                 uint idx = outMessages[i].bodyIdx;
@@ -318,7 +327,7 @@ contract BocHeaderAdapter {
         return data;
     }
 
-    function parseMessage(CellData[50] memory cells, uint messagesIdx) public pure returns (Message memory message) {
+    function parseMessage(CellData[100] memory cells, uint messagesIdx) public pure returns (Message memory message) {
         message.info = parseCommonMsgInfo(cells, messagesIdx);
         bool hasInit = readBool(cells, messagesIdx);
         if (hasInit) {
@@ -336,7 +345,7 @@ contract BocHeaderAdapter {
     }
 
 
-    function parseCommonMsgInfo(CellData[50] memory cells, uint messagesIdx) public pure returns (RawCommonMessageInfo memory msgInfo) {
+    function parseCommonMsgInfo(CellData[100] memory cells, uint messagesIdx) public pure returns (RawCommonMessageInfo memory msgInfo) {
         if (!readBool(cells, messagesIdx)) {
             // internal
             // console.log("internal");
@@ -371,7 +380,7 @@ contract BocHeaderAdapter {
         return msgInfo;
     }
 
-    function readAddress(CellData[50] memory cells, uint messagesIdx) public pure returns (TonAddress memory addr) {
+    function readAddress(CellData[100] memory cells, uint messagesIdx) public pure returns (TonAddress memory addr) {
         uint8 Type = readUint8(cells, messagesIdx, 2);
 
         if (Type == 0) {
@@ -403,19 +412,19 @@ contract BocHeaderAdapter {
         //     // TODO
         // }
 
-        // uint8[50] memory cell_should_cache;
+        // uint8[100] memory cell_should_cache;
         require(!info.has_cache_bits, "has_cache_bits logic has not realised");
 
         // We have only 1 root, so we don't need to write code for find all root indexes
         uint rootIdx = info.cell_count - read_int(boc[info.roots_offset :], info.ref_byte_size) - 1;
 
-        CellData[50] memory cells = get_tree_of_cells(boc, info);
+        CellData[100] memory cells = get_tree_of_cells(boc, info);
 
-        // for (uint i = 0; i < 50; i++) {
+        // for (uint i = 0; i < 100; i++) {
         //     console.logBytes(cells[i].bits);
         //     console.log("==============");
         // }
-        console.logBytes32(cells[rootIdx]._hash);
+        // console.logBytes32(cells[rootIdx]._hash);
 
         transaction = parseTransactionHeader(cells, rootIdx);
         transaction.messages = parseMessagesHeader(cells, readCell(cells, rootIdx));
@@ -431,13 +440,13 @@ contract BocHeaderAdapter {
         //     // TODO
         // }
 
-        // uint8[50] memory cell_should_cache;
+        // uint8[100] memory cell_should_cache;
         require(!info.has_cache_bits, "has_cache_bits logic has not realised");
 
         // We have only 1 root, so we don't need to write code for find all root indexes
         uint rootIdx = info.cell_count - read_int(boc[info.roots_offset :], info.ref_byte_size) - 1;
 
-        CellData[50] memory cells = get_tree_of_cells(boc, info);
+        CellData[100] memory cells = get_tree_of_cells(boc, info);
 
         parseTransactionHeader(cells, rootIdx);
         MessagesHeader memory messages = parseMessagesHeader(cells, readCell(cells, rootIdx));
@@ -446,7 +455,7 @@ contract BocHeaderAdapter {
         return getDataFromMessages(cells, messages.outMessages);
     }
 
-    function readBit(CellData[50] memory cells, uint cellIdx) public pure returns (uint8 value) {
+    function readBit(CellData[100] memory cells, uint cellIdx) public pure returns (uint8 value) {
         uint cursor = cells[cellIdx].cursor / 8;
         uint bytesStart = cells[cellIdx].cursor % 8;
         value = uint8(cells[cellIdx].bits[cursor] << bytesStart >> 7);
@@ -454,11 +463,11 @@ contract BocHeaderAdapter {
         return value;
     }
 
-    function readBool(CellData[50] memory cells, uint cellIdx) public pure returns (bool value) {
+    function readBool(CellData[100] memory cells, uint cellIdx) public pure returns (bool value) {
         return readBit(cells, cellIdx) == 1;
     }
 
-    function readUint8(CellData[50] memory cells, uint cellIdx, uint8 size) public pure returns (uint8 value) {
+    function readUint8(CellData[100] memory cells, uint cellIdx, uint8 size) public pure returns (uint8 value) {
         require(size <= 8, "max size is 8 bits");
         value = 0;
         while (size > 0) {
@@ -469,7 +478,21 @@ contract BocHeaderAdapter {
         return value;
     }
 
-    function readUint32(CellData[50] memory cells, uint cellIdx, uint8 size) public pure returns (uint32 value) {
+    function readUint16(CellData[100] memory cells, uint cellIdx, uint8 size) public view returns (uint16 value) {
+        require(size <= 16, "max size is 16 bits");
+        value = 0;
+        // console.log("readUint16 start");
+        while (size > 0) {
+            // console.log("read", size);
+            value = (value << 1) + readBit(cells, cellIdx);
+            size--;
+        }
+        // console.log("readUint16 end");
+
+        return value;
+    }
+
+    function readUint32(CellData[100] memory cells, uint cellIdx, uint8 size) public pure returns (uint32 value) {
         require(size <= 32, "max size is 32 bits");
         value = 0;
         while (size > 0) {
@@ -480,7 +503,7 @@ contract BocHeaderAdapter {
         return value;
     }
 
-    function readUint64(CellData[50] memory cells, uint cellIdx, uint16 size) public pure returns (uint64 value) {
+    function readUint64(CellData[100] memory cells, uint cellIdx, uint16 size) public pure returns (uint64 value) {
         require(size <= 64, "max size is 64 bits");
         value = 0;
         while (size > 0) {
@@ -491,7 +514,7 @@ contract BocHeaderAdapter {
         return value;
     }
 
-    function readUint(CellData[50] memory cells, uint cellIdx, uint16 size) public pure returns (uint value) {
+    function readUint(CellData[100] memory cells, uint cellIdx, uint16 size) public pure returns (uint value) {
         require(size <= 256, "max size is 64 bits");
         value = 0;
         while (size > 0) {
@@ -502,7 +525,7 @@ contract BocHeaderAdapter {
         return value;
     }
 
-    function readBytes32_2(CellData[50] memory cells, uint cellIdx, uint size) public pure returns (bytes32 buffer) {
+    function readBytes32_2(CellData[100] memory cells, uint cellIdx, uint size) public pure returns (bytes32 buffer) {
         uint value = 0;
         while (size > 0) {
             value = (value << 1) + readBit(cells, cellIdx);
@@ -512,7 +535,7 @@ contract BocHeaderAdapter {
         return buffer;
     }
 
-    function readBytes32(CellData[50] memory cells, uint cellIdx, uint sizeb) public pure returns (bytes32 buffer) {
+    function readBytes32(CellData[100] memory cells, uint cellIdx, uint sizeb) public pure returns (bytes32 buffer) {
         uint size = sizeb * 8;
         uint value = 0;
         while (size > 0) {
@@ -523,13 +546,13 @@ contract BocHeaderAdapter {
         return buffer;
     }
 
-    function readCell(CellData[50] memory cells, uint cellIdx) public pure returns (uint idx) {
+    function readCell(CellData[100] memory cells, uint cellIdx) public pure returns (uint idx) {
         idx = cells[cellIdx].refs[cells[cellIdx].cursorRef];
         cells[cellIdx].cursorRef++;
         return idx;
     }
 
-    function readUnaryLength(CellData[50] memory cells, uint cellIdx) public pure returns (uint value) {
+    function readUnaryLength(CellData[100] memory cells, uint cellIdx) public pure returns (uint value) {
         value = 0;
         while (readBool(cells, cellIdx)) {
             value++;
@@ -557,8 +580,9 @@ contract BocHeaderAdapter {
         return n;
     }
 
-    function get_tree_of_cells(bytes calldata boc, BagOfCellsInfo memory info) public view returns (CellData[50] memory cells) {
-        uint[50] memory custom_index = get_indexes(boc, info);
+    function get_tree_of_cells(bytes calldata boc, BagOfCellsInfo memory info) public view returns (CellData[100] memory cells) {
+        console.log("WORING HARD");
+        uint[100] memory custom_index = get_indexes(boc, info);
 
         bytes calldata cells_slice = boc[info.data_offset : info.data_offset + info.data_size];
 
@@ -569,42 +593,99 @@ contract BocHeaderAdapter {
             
             bytes calldata cell_slice = get_cell_slice(idx, cells_slice, custom_index);
             CellSerializationInfo memory cell_info = init_cell_serialization_info(cell_slice, info.ref_byte_size);
-            bytes memory _hash = cell_slice[:cell_info.refs_offset];
-            console.logBytes(_hash);
-            if (cells[i].refs[0] != 255) {
-                for (uint j = 0; j < 4; j ++) {
-                    if (cells[i].refs[j] == 255) {
-                        break;
-                    }
-                    uint16 childDepth = cells[cells[i].refs[j]].depth;
-                    _hash = bytes.concat(_hash, abi.encodePacked(childDepth));
-                    if (childDepth > cells[i].depth) {
-                        cells[i].depth = childDepth;
-                    }
-                }
-                
-                cells[i].depth++;
-                console.logBytes(_hash);
-                for (uint j = 0; j < 4; j ++) {
-                    if (cells[i].refs[j] == 255) {
-                        break;
-                    }
-                    _hash = bytes.concat(_hash, cells[cells[i].refs[j]]._hash);
-                }
-                console.logBytes(_hash);
-                cells[i]._hash = sha256(_hash);              
-            } else {
-                cells[i]._hash = sha256(_hash);
+            
+            cells[i].cellType = OrdinaryCell;
+            
+            if (cells[i].special) {
+                cells[i].cellType = readUint8(cells, i, 8);
+                cells[i].cursor -= 8;
             }
-            console.log("Repr of cell: ");
-            console.logBytes(cell_slice);
-            console.logBytes32(cells[i]._hash);
-        }
 
+            console.log("Cell Type:", cells[i].cellType);
+            // console.log("WORING HARD!!!!");
+            calcHashForRefs(cell_info, cells, i, cell_slice);
+            // console.log("Repr of cell: ");
+            console.logBytes(cell_slice);
+            console.logBytes32(cells[i]._hash[0]);
+            console.logBytes32(cells[i]._hash[1]);
+        }
+        // console.log("WORING HARD");
         return cells;
     }
 
-    function get_indexes(bytes calldata boc, BagOfCellsInfo memory info) public pure returns (uint[50] memory custom_index) {
+    function calcHashForRefs(CellSerializationInfo memory cell_info, CellData[100] memory cells, uint i, bytes calldata cell_slice) public view {
+            uint8 hash_i_offset = getHashesCount(cell_info.level_mask) - (cells[i].cellType == PrunnedBranchCell ? 1 : getHashesCount(cell_info.level_mask));
+            uint8 hash_i = 0; 
+            uint8 level = getLevel(cell_info.level_mask);
+            for (uint8 level_i = 0; level_i <= level; level_i++) {
+                if (!isLevelSignificant(level_i, cell_info.level_mask)) {
+                    continue;
+                } 
+
+                if (hash_i < hash_i_offset) {
+                    hash_i++;
+                    continue;
+                }
+
+                bytes memory _hash;
+
+                if (hash_i == hash_i_offset) {
+                    // uint32 new_level_mask = applyLevelMask(level_i);
+                    require(!(hash_i !=0 && cells[i].cellType != PrunnedBranchCell), "Cannot deserialize cell");
+                    _hash = cell_slice[:cell_info.refs_offset];
+                    console.logBytes(_hash);
+                } else {
+                    require(!(level_i == 0 || cells[i].cellType == PrunnedBranchCell), "Cannot deserialize cell 2");
+                    _hash = bytes.concat(_hash, cells[i]._hash[hash_i - hash_i_offset - 1]);
+                }
+            
+                // uint8 dest_i = hash_i - hash_i_offset;
+                if (cells[i].refs[0] != 255) {
+                    
+
+                    for (uint j = 0; j < 4; j ++) {
+                        if (cells[i].refs[j] == 255) {
+                            break;
+                        }
+                        // uint16 childDepth = getDepth(level_i, cell_info.level_mask, cells[i].cellType, cells, cells[i].refs[j]);
+                        
+                        // console.log("child depth:", childDepth);
+                        // _hash = bytes.concat(_hash, abi.encodePacked(childDepth));
+                        // if (childDepth > cells[i].depth[dest_i]) {
+                        //     cells[i].depth[dest_i] = childDepth;
+                        // }
+
+                        // uint16 childDepth = getDepth(level_i, cell_info.level_mask, cells[i].cellType, cells, cells[i].refs[j]);
+                        
+                        // console.log("child depth:", getDepth(level_i, cell_info.level_mask, cells[i].cellType, cells, cells[i].refs[j]));
+                        _hash = bytes.concat(_hash, abi.encodePacked(getDepth(level_i, cells[cells[i].refs[j]].level_mask, cells[cells[i].refs[j]].cellType, cells, cells[i].refs[j])));
+                        if (getDepth(level_i, cells[cells[i].refs[j]].level_mask, cells[cells[i].refs[j]].cellType, cells, cells[i].refs[j]) > cells[i].depth[hash_i - hash_i_offset]) {
+                            cells[i].depth[hash_i - hash_i_offset] = getDepth(level_i, cells[cells[i].refs[j]].level_mask, cells[cells[i].refs[j]].cellType, cells, cells[i].refs[j]);
+                        }
+                        
+                    }
+
+                    
+                    
+                    cells[i].depth[hash_i - hash_i_offset]++;
+                    console.logBytes(_hash);
+                    for (uint j = 0; j < 4; j ++) {
+                        if (cells[i].refs[j] == 255) {
+                            break;
+                        }
+                        // console.log("LEVEL I:", level_i);
+                        _hash = bytes.concat(_hash, getHash(level_i, cells[cells[i].refs[j]].level_mask, cells[cells[i].refs[j]].cellType, cells, cells[i].refs[j]));
+                    }
+                    console.logBytes(_hash);
+                    cells[i]._hash[hash_i - hash_i_offset] = sha256(_hash);              
+                } else {
+                    // console.log("WORING HARD WITHOUT REFS");
+                    cells[i]._hash[hash_i - hash_i_offset] = sha256(_hash);
+                }
+            }
+    }
+
+    function get_indexes(bytes calldata boc, BagOfCellsInfo memory info) public pure returns (uint[100] memory custom_index) {
         require(!info.has_index, "has index logic has not realised");
 
         bytes calldata cells_slice_for_indexes = boc[info.data_offset : info.data_offset + info.data_size];
@@ -660,7 +741,7 @@ contract BocHeaderAdapter {
         return cnt;
     }
 
-    function deserialize_cell(uint idx, bytes calldata cells_slice, uint[50] memory custom_index, uint ref_byte_size, uint cell_count) public view returns (CellData memory cell) {
+    function deserialize_cell(uint idx, bytes calldata cells_slice, uint[100] memory custom_index, uint ref_byte_size, uint cell_count) public view returns (CellData memory cell) {
         bytes calldata cell_slice = get_cell_slice(idx, cells_slice, custom_index);
         
         uint[4] memory refs;
@@ -685,11 +766,11 @@ contract BocHeaderAdapter {
         //     cell._hash = bytes32(cell_slice);
         // }
         
-        // cell.level_mask = cell_info.level_mask;
+        cell.level_mask = cell_info.level_mask;
         return cell;
     }
 
-    function get_cell_slice(uint idx, bytes calldata cells_slice, uint[50] memory custom_index) public pure returns (bytes calldata cell_slice) {
+    function get_cell_slice(uint idx, bytes calldata cells_slice, uint[100] memory custom_index) public pure returns (bytes calldata cell_slice) {
         uint offs = idx == 0 ? 0 : custom_index[idx - 1];
         uint offs_end = custom_index[idx];
         return cells_slice[offs : offs_end];
@@ -742,7 +823,7 @@ contract BocHeaderAdapter {
         return res;
     }
 
-    // // function getMaxLevel(CellData[50] memory cells, uint cellIdx) public pure returns (uint8 maxLevel) {
+    // // function getMaxLevel(CellData[100] memory cells, uint cellIdx) public pure returns (uint8 maxLevel) {
     // //     //TODO level calculation differ for exotic cells
     // //     maxLevel = 0;
     // //     for (uint8 i = 0; i < 4; i++) {
@@ -770,24 +851,88 @@ contract BocHeaderAdapter {
         return sha256(cell);
     }
 
-    function applyLevelMask(uint8 level, uint32 levelMask) public pure returns(uint32) {
-        return uint32(levelMask & ((1 << level) - 1));
+    function applyLevelMask(uint8 level, uint32 levelMask) public view returns(uint32 f) {
+        f = uint32(levelMask & ((1 << level) - 1));
+        // console.log("Apply levelmask work", f);
+        return f;
     }
 
-    function getHashesCountFromMask(uint32 mask) public view returns (uint8) {
-        uint8 n = 0;
+    function getLevelFromMask(uint32 mask) public pure returns(uint8 n) {
+        n = 0;
+        uint32 maskCopy = mask;
         for (uint8 i = 0; i < 3; i++) {
-            n += uint8(mask & 1);
-            mask = mask >> 1;
+            n += uint8(maskCopy & 1);
+            maskCopy = maskCopy >> 1;
         }
         return n + 1;
     }
 
-    function getHash(uint8 level, uint32 levelMask) public view {
-        uint8 hash_i = getHashesCountFromMask(applyLevelMask(level, levelMask)) - 1;
+    function getLevel(uint32 mask) public pure returns(uint8 n) {
+        return getLevelFromMask(mask & 7);
     }
 
-    function finalyze(CellData[50] memory cells, uint cellIdx) public {
+    function getHashesCountFromMask(uint32 mask) public view returns (uint8) {
+        // console.log("get Hashes Count From Mask work");
+        uint8 n = 0;
+        uint32 maskCopy = mask;
+        for (uint8 i = 0; i < 3; i++) {
+            n += uint8(maskCopy & 1);
+            maskCopy = maskCopy >> 1;
+        }
+        return n + 1;
+    }
+
+    function getHashesCount(uint32 mask) public view returns (uint8) {
+        return getHashesCountFromMask(mask & 7);
+    }
+
+    function getHash(uint8 level, uint32 levelMask, uint cellType, CellData[100] memory cells, uint cellIdx) public view returns(bytes32) {
+        uint8 hash_i = getHashesCountFromMask(applyLevelMask(level, levelMask)) - 1;
+        // console.log("HASH_I:", hash_i);
+        if (cellType == PrunnedBranchCell) {
+            // console.log("Is pruned");
+            uint8 this_hash_i = getHashesCount(levelMask) - 1;
+            // console.log("Got data from bits", this_hash_i, hash_i);
+            if (hash_i != this_hash_i) {
+                uint cursor = 16 + uint(hash_i) * 2 * 8;
+                uint hash_num = readUint(cells, cellIdx, 256);
+                cells[cellIdx].cursor -= cursor;
+                        
+                return bytes32(hash_num);
+            }
+            hash_i = 0;
+        }
+        return cells[cellIdx]._hash[hash_i];
+    }
+
+    function isLevelSignificant(uint8 level, uint32 mask) public pure returns (bool) {
+        return (level == 0) || ((mask >> (level - 1)) % 2 != 0);
+    }
+
+    function getDepth(uint8 level, uint32 mask, uint cellType, CellData[100] memory cells, uint cellIdx) public view returns (uint16) {
+        // console.log("GET DEPTH WORK");
+        uint32 levelMask = applyLevelMask(level, mask);
+        
+        uint8 hash_i = getHashesCountFromMask(levelMask)  - 1;
+        // console.log("HASH_I:", hash_i);
+        if (cellType == PrunnedBranchCell) {
+            // console.log("Is pruned");
+            uint8 this_hash_i = getHashesCount(mask) - 1;
+            if (hash_i != this_hash_i) {
+                uint cursor = 16 + uint(this_hash_i) * 32 * 8 + uint(hash_i) * 2 * 8;
+                cells[cellIdx].cursor = cursor;
+                uint16 childDepth = readUint16(cells, cellIdx, 16);
+                // console.log("Got data from bits", this_hash_i, hash_i, childDepth);
+                cells[cellIdx].cursor -= cursor;
+                        
+                return childDepth;
+            }
+            hash_i = 0;
+        }
+        return cells[cellIdx].depth[hash_i];
+    }
+
+    function finalyze(CellData[100] memory cells, uint cellIdx) public {
 
     }
 }
