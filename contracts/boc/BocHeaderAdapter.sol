@@ -138,9 +138,9 @@ contract BocHeaderAdapter {
             0, // data_size
             0 // total_size
         );
-        console.log("Header magic");
-        console.logBytes(boc);
-        console.logBytes4(header.magic);
+        // console.log("Header magic");
+        // console.logBytes(boc);
+        // console.logBytes4(header.magic);
         require(!(header.magic != boc_generic &&
         header.magic != boc_idx &&
         header.magic != boc_idx_crc32c), "wrong boc type");
@@ -581,7 +581,6 @@ contract BocHeaderAdapter {
     }
 
     function get_tree_of_cells(bytes calldata boc, BagOfCellsInfo memory info) public view returns (CellData[100] memory cells) {
-        console.log("WORING HARD");
         uint[100] memory custom_index = get_indexes(boc, info);
 
         bytes calldata cells_slice = boc[info.data_offset : info.data_offset + info.data_size];
@@ -601,15 +600,13 @@ contract BocHeaderAdapter {
                 cells[i].cursor -= 8;
             }
 
-            console.log("Cell Type:", cells[i].cellType);
-            // console.log("WORING HARD!!!!");
+            // console.log("Cell Type:", cells[i].cellType);
             calcHashForRefs(cell_info, cells, i, cell_slice);
             // console.log("Repr of cell: ");
-            console.logBytes(cell_slice);
-            console.logBytes32(cells[i]._hash[0]);
-            console.logBytes32(cells[i]._hash[1]);
+            // console.logBytes(cell_slice);
+            // console.logBytes32(cells[i]._hash[0]);
+            // console.logBytes32(cells[i]._hash[1]);
         }
-        // console.log("WORING HARD");
         return cells;
     }
 
@@ -633,7 +630,7 @@ contract BocHeaderAdapter {
                     // uint32 new_level_mask = applyLevelMask(level_i);
                     require(!(hash_i !=0 && cells[i].cellType != PrunnedBranchCell), "Cannot deserialize cell");
                     _hash = cell_slice[:cell_info.refs_offset];
-                    console.logBytes(_hash);
+                    // console.logBytes(_hash);
                 } else {
                     require(!(level_i == 0 || cells[i].cellType == PrunnedBranchCell), "Cannot deserialize cell 2");
                     _hash = bytes.concat(_hash, cells[i]._hash[hash_i - hash_i_offset - 1]);
@@ -668,7 +665,7 @@ contract BocHeaderAdapter {
                     
                     
                     cells[i].depth[hash_i - hash_i_offset]++;
-                    console.logBytes(_hash);
+                    // console.logBytes(_hash);
                     for (uint j = 0; j < 4; j ++) {
                         if (cells[i].refs[j] == 255) {
                             break;
@@ -676,12 +673,14 @@ contract BocHeaderAdapter {
                         // console.log("LEVEL I:", level_i);
                         _hash = bytes.concat(_hash, getHash(level_i, cells[cells[i].refs[j]].level_mask, cells[cells[i].refs[j]].cellType, cells, cells[i].refs[j]));
                     }
-                    console.logBytes(_hash);
+                    // console.logBytes(_hash);
                     cells[i]._hash[hash_i - hash_i_offset] = sha256(_hash);              
                 } else {
                     // console.log("WORING HARD WITHOUT REFS");
                     cells[i]._hash[hash_i - hash_i_offset] = sha256(_hash);
                 }
+
+                hash_i++;
             }
     }
 
@@ -932,7 +931,20 @@ contract BocHeaderAdapter {
         return cells[cellIdx].depth[hash_i];
     }
 
-    function finalyze(CellData[100] memory cells, uint cellIdx) public {
-
+    function proofTx(bytes calldata txBoc, bytes calldata proofBoc) public view returns (bool) {
+        BagOfCellsInfo memory txBocInfo = parse_serialized_header(txBoc);
+        BagOfCellsInfo memory proofBocInfo = parse_serialized_header(proofBoc);
+        uint txRootIdx = txBocInfo.cell_count - read_int(txBoc[txBocInfo.roots_offset :], txBocInfo.ref_byte_size) - 1;
+        CellData[100] memory txTreeOfCells = get_tree_of_cells(txBoc, txBocInfo);
+        CellData[100] memory proofTreeOfCells = get_tree_of_cells(proofBoc, proofBocInfo);
+        for(uint i = 0; i < 100; i++) {
+            if (proofTreeOfCells[i].cellType == 0) {
+                break;
+            }
+            if (proofTreeOfCells[i]._hash[0] == txTreeOfCells[txRootIdx]._hash[0]) {
+                return true;
+            }
+        }
+        return false;
     }
 }
