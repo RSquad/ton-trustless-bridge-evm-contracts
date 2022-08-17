@@ -55,7 +55,7 @@ describe("Greeter", function () {
     await adapter.deployed();
 
     const res = await adapter.proofTx(txBoc, proofBoc);
-    console.log(res);
+    // console.log(res);
 
     // const res = await adapter.deserialize(bufBlock);
     // const res = await adapter.deserializeMsgData(bufBlock);
@@ -64,9 +64,10 @@ describe("Greeter", function () {
     // console.log("Boc Header: ============");
     // console.log(clearData(bocHeaderInfo));
 
-    // const cells = await adapter.get_tree_of_cells(bufBlock, bocHeaderInfo);
-    // console.log("CELLS: ==============");
-    // // console.log(cells.filter((cell) => cell.bits !== "0x"));
+    // const cells = await adapter.get_tree_of_cells(bufBlock, bocHeaderInfo); 14 [13 [12! 11 [10 [9! 8 [7! 6]] 2!]]] !!!!!6
+    const cells: any = res;
+    console.log("CELLS: ==============");
+    console.log(cells.filter((cell: any, idx: number) => cell.bits !== "0x" && [8].includes(idx)));
     // console.log(
     //   cells.filter((cell) => cell.bits !== "0x").map((cell) => cell._hash)
     // );
