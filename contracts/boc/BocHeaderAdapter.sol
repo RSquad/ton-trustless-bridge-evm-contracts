@@ -302,9 +302,8 @@ contract BocHeaderAdapter {
         // lb0
         if (!readBool(cells, cellIdx)) {
             // Short label detected
-            console.log("Short label detected", cellIdx, n);
             prefixLength = readUnaryLength(cells, cellIdx);
-            console.log(prefixLength);
+            console.log("Short label detected", cellIdx, n, prefixLength);
 
             for (uint256 i = 0; i < prefixLength; i++) {
                 pp = (pp << 1) + readBit(cells, cellIdx);
@@ -313,16 +312,16 @@ contract BocHeaderAdapter {
             // lb1
             if (!readBool(cells, cellIdx)) {
                 // long label detected
-                console.log("Long label detected", cellIdx, n);
                 prefixLength = readUint64(cells, cellIdx, uint8(log2Ceil(n)));
+                console.log("Long label detected", cellIdx, n, prefixLength);
                 for (uint256 i = 0; i < prefixLength; i++) {
                     pp = (pp << 1) + readBit(cells, cellIdx);
                 }
             } else {
                 // Same label detected
-                console.log("Same label detected", cellIdx, n);
                 uint256 bit = readBit(cells, cellIdx);
                 prefixLength = readUint64(cells, cellIdx, uint8(log2Ceil(n)));
+                console.log("Same label detected", cellIdx, n, prefixLength);
                 for (uint256 i = 0; i < prefixLength; i++) {
                     pp = (pp << 1) + bit;
                 }
@@ -330,11 +329,11 @@ contract BocHeaderAdapter {
         }
         if (n - prefixLength == 0) {
             // end
-            for (uint i = 0; i < 10; i++) {
-               if (cellIdxs[i] == 255) {
+            for (uint256 i = 0; i < 10; i++) {
+                if (cellIdxs[i] == 255) {
                     cellIdxs[i] = cellIdx;
                     break;
-               } 
+                }
             }
             // cellIdxs[pp] = cellIdx;
             // res.set(new BN(pp, 2).toString(10), extractor(slice));
@@ -1266,8 +1265,9 @@ contract BocHeaderAdapter {
     function parse_block(
         bytes calldata proofBoc,
         BagOfCellsInfo memory proofBocInfo,
-        CellData[100] memory proofTreeOfCells
-    ) public view returns (uint256[10] memory) {
+        CellData[100] memory proofTreeOfCells,
+        bytes32 txRootHash
+    ) public view returns (bool) {
         uint256 proofRootIdx = proofBocInfo.cell_count -
             read_int(
                 proofBoc[proofBocInfo.roots_offset:],
@@ -1285,62 +1285,89 @@ contract BocHeaderAdapter {
         readCell(proofTreeOfCells, proofRootIdx);
         uint256 extraIdx = readCell(proofTreeOfCells, proofRootIdx);
         console.log("extra id", extraIdx);
-        return parse_block_extra(proofTreeOfCells, extraIdx);
+        return parse_block_extra(proofTreeOfCells, extraIdx, txRootHash);
         //return proofTreeOfCells[proofRootIdx];
     }
 
-    function parse_block_extra(CellData[100] memory cells, uint256 cellIdx)
-        public
-        view
-        returns (uint256[10] memory)
-    {
+    function parse_block_extra(
+        CellData[100] memory cells,
+        uint256 cellIdx,
+        bytes32 txRootHash
+    ) public view returns (bool) {
         uint32 isBlockExtra = readUint32(cells, cellIdx, 32);
         require(isBlockExtra == 1244919549, "cell is not extra block info");
 
         // in pruned block cells with extra block data reverted
         // in_msg_descr? (pruned)
-        // readCell(cells, cellIdx);
+        uint256 in_msg_descr = readCell(cells, cellIdx);
         // out_msg_descr? (pruned)
         // readCell(cells, cellIdx);
         // account_blocks?
-        uint256 account_blocksIdx = readCell(cells, readCell(cells, cellIdx));
+        // uint256 account_blocksIdx = readCell(cells, readCell(cells, cellIdx));
         // console.log("account_blocksIdx", account_blocksIdx);
 
-        uint256[10] memory accountIdxs = parseDict(
+        in_msg_descr = readCell(cells, in_msg_descr);
+
+        uint256[10] memory inMsgIdxs = parseDict(
             cells,
-            account_blocksIdx,
+            // account_blocksIdx,
+            in_msg_descr,
             256
         );
         for (uint256 i = 0; i < 10; i++) {
-            if (accountIdxs[i] == 255) {
+            if (inMsgIdxs[i] == 255) {
                 break;
             }
+            // cells[inMsgIdxs[i]].cursor = 292;
+
+            // console.log("IN MSG TYPE CHECK", cells[inMsgIdxs[i]].cursor, inMsgType);
             // console.log(accountIdxs[i]);
             // console.logBytes(cells[accountIdxs[i]].bits);
-            console.log(
-                "cursor",
-                cells[accountIdxs[i]].cursor,
-                cells[accountIdxs[i]].cursor / 8,
-                cells[accountIdxs[i]].bits.length
-            );
+            // console.log(
+            //     "cursor",
+            //     cells[inMsgIdxs[i]].cursor,
+            //     cells[inMsgIdxs[i]].cursor / 8,
+            //     cells[inMsgIdxs[i]].bits.length
+            // );
             // cells[accountIdxs[i]].cursor += 12; // 7 is so good
             // console.log("isAccountBlock", readUint8(cells, accountIdxs[i], 4), cells[accountIdxs[i]].cursor);
             // bytes32 addressHash = readBytes32(cells, accountIdxs[i], 32);
             // console.log("Block account");
             // console.logBytes32(addressHash);
             // get transactions of this account
-            uint256[10] memory txIdxs = parseDict(cells, accountIdxs[i], 4 /* 64 */);
-            for (uint j = 0; j < 10; j++) {
-                console.log(txIdxs[j]);
+            // uint256[10] memory txIdxs = parseDict(cells, inMsgIdxs[i], 4 /* 64 */);
+            // for (uint j = 0; j < 10; j++) {
+            //     console.log(txIdxs[j]);
+            // }
+
+            /*
+            
+            msg_import_ext$000 msg:^(Message Any) transaction:^Transaction 
+              = InMsg;
+            
+            import_fees$_ fees_collected:Grams 
+            value_imported:CurrencyCollection = ImportFees;
+            */
+            parseCurrencyCollection(cells, inMsgIdxs[i]);
+            uint8 inMsgType = readUint8(cells, inMsgIdxs[i], 3);
+            console.log(
+                "IN MSG TYPE CHECK",
+                cells[inMsgIdxs[i]].cursor,
+                inMsgType
+            );
+            require(inMsgType == 0, "Wrong msg type");
+            uint256 transactionCellIdx = cells[inMsgIdxs[i]].refs[1];
+            if (cells[transactionCellIdx]._hash[0] == txRootHash) {
+                return true;
             }
         }
-        return accountIdxs;
+        return false;
     }
 
     function proofTx(bytes calldata txBoc, bytes calldata proofBoc)
         public
         view
-        returns (CellData[100] memory)
+        returns (bool)
     {
         BagOfCellsInfo memory txBocInfo = parse_serialized_header(txBoc);
         BagOfCellsInfo memory proofBocInfo = parse_serialized_header(proofBoc);
@@ -1356,14 +1383,20 @@ contract BocHeaderAdapter {
             proofBocInfo
         );
 
-        TransactionHeader memory transaction = parseTransactionHeader(
-            txTreeOfCells,
-            txRootIdx
-        );
-        console.log("Tx addr hash");
-        console.logBytes32(transaction.addressHash);
+        // TransactionHeader memory transaction = parseTransactionHeader(
+        //     txTreeOfCells,
+        //     txRootIdx
+        // );
+        // console.log("Tx addr hash");
+        // console.logBytes32(transaction.addressHash);
 
-        parse_block(proofBoc, proofBocInfo, proofTreeOfCells);
+        return
+            parse_block(
+                proofBoc,
+                proofBocInfo,
+                proofTreeOfCells,
+                txTreeOfCells[txRootIdx]._hash[0]
+            );
         // for(uint i = 0; i < 100; i++) {
         //     if (proofTreeOfCells[i].cellType == 0) {
         //         break;
@@ -1373,12 +1406,6 @@ contract BocHeaderAdapter {
         //     }
         // }
         // return false;
-        return proofTreeOfCells;
+        // return proofTreeOfCells;
     }
 }
-
-/*
-extra: {
-
-}
-*/

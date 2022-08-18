@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import { assert } from "console";
 import { ethers } from "hardhat";
 
 const transactionBoc =
@@ -55,7 +56,7 @@ describe("Greeter", function () {
     await adapter.deployed();
 
     const res = await adapter.proofTx(txBoc, proofBoc);
-    // console.log(res);
+    console.log(res);
 
     // const res = await adapter.deserialize(bufBlock);
     // const res = await adapter.deserializeMsgData(bufBlock);
@@ -65,9 +66,9 @@ describe("Greeter", function () {
     // console.log(clearData(bocHeaderInfo));
 
     // const cells = await adapter.get_tree_of_cells(bufBlock, bocHeaderInfo); 14 [13 [12! 11 [10 [9! 8 [7! 6]] 2!]]] !!!!!6
-    const cells: any = res;
-    console.log("CELLS: ==============");
-    console.log(cells.filter((cell: any, idx: number) => cell.bits !== "0x" && [8].includes(idx)));
+    // const cells: any = res;
+    // console.log("CELLS: ==============");
+    // console.log(cells.filter((cell: any, idx: number) => cell.bits !== "0x" && [8].includes(idx)));
     // console.log(
     //   cells.filter((cell) => cell.bits !== "0x").map((cell) => cell._hash)
     // );
@@ -88,4 +89,15 @@ describe("Greeter", function () {
     // console.log(rTx.);
     // console.log(bufBlock);
   });
+
+  it("tx root cell included in pruned block tree of cells and has same hash", async function() {
+    const Adapter = await ethers.getContractFactory("BocHeaderAdapter");
+    const adapter = await Adapter.deploy();
+
+    const [root] = await ethers.getSigners();
+    await adapter.deployed();
+
+    const res = await adapter.proofTx(txBoc, proofBoc);
+    expect(res).to.be.equal(true);
+  })
 });
