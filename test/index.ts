@@ -99,7 +99,6 @@ describe("Greeter", function () {
     await adapter.deployed();
 
     const res = await adapter.proofTx(txBoc, proofBoc);
-    await adapter.checkFee(txBoc, proofBoc);
     expect(res).to.be.equal(true);
   })
 });
