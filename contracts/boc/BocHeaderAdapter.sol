@@ -303,7 +303,7 @@ contract BocHeaderAdapter {
         if (!readBool(cells, cellIdx)) {
             // Short label detected
             prefixLength = readUnaryLength(cells, cellIdx);
-            console.log("Short label detected", cellIdx, n, prefixLength);
+            // console.log("Short label detected", cellIdx, n, prefixLength);
 
             for (uint256 i = 0; i < prefixLength; i++) {
                 pp = (pp << 1) + readBit(cells, cellIdx);
@@ -313,7 +313,7 @@ contract BocHeaderAdapter {
             if (!readBool(cells, cellIdx)) {
                 // long label detected
                 prefixLength = readUint64(cells, cellIdx, uint8(log2Ceil(n)));
-                console.log("Long label detected", cellIdx, n, prefixLength);
+                // console.log("Long label detected", cellIdx, n, prefixLength);
                 for (uint256 i = 0; i < prefixLength; i++) {
                     pp = (pp << 1) + readBit(cells, cellIdx);
                 }
@@ -321,7 +321,7 @@ contract BocHeaderAdapter {
                 // Same label detected
                 uint256 bit = readBit(cells, cellIdx);
                 prefixLength = readUint64(cells, cellIdx, uint8(log2Ceil(n)));
-                console.log("Same label detected", cellIdx, n, prefixLength);
+                // console.log("Same label detected", cellIdx, n, prefixLength);
                 for (uint256 i = 0; i < prefixLength; i++) {
                     pp = (pp << 1) + bit;
                 }
@@ -1159,7 +1159,6 @@ contract BocHeaderAdapter {
         returns (uint32 f)
     {
         f = uint32(levelMask & ((1 << level) - 1));
-        // console.log("Apply levelmask work", f);
         return f;
     }
 
@@ -1178,7 +1177,6 @@ contract BocHeaderAdapter {
     }
 
     function getHashesCountFromMask(uint32 mask) public view returns (uint8) {
-        // console.log("get Hashes Count From Mask work");
         uint8 n = 0;
         uint32 maskCopy = mask;
         for (uint8 i = 0; i < 3; i++) {
@@ -1202,11 +1200,9 @@ contract BocHeaderAdapter {
         uint8 hash_i = getHashesCountFromMask(
             applyLevelMask(level, levelMask)
         ) - 1;
-        // console.log("HASH_I:", hash_i);
+
         if (cellType == PrunnedBranchCell) {
-            // console.log("Is pruned");
             uint8 this_hash_i = getHashesCount(levelMask) - 1;
-            // console.log("Got data from bits", this_hash_i, hash_i);
             if (hash_i != this_hash_i) {
                 uint256 cursor = 16 + uint256(hash_i) * 2 * 8;
                 uint256 hash_num = readUint(cells, cellIdx, 256);
@@ -1234,13 +1230,10 @@ contract BocHeaderAdapter {
         CellData[100] memory cells,
         uint256 cellIdx
     ) public view returns (uint16) {
-        // console.log("GET DEPTH WORK");
         uint32 levelMask = applyLevelMask(level, mask);
-
         uint8 hash_i = getHashesCountFromMask(levelMask) - 1;
-        // console.log("HASH_I:", hash_i);
+
         if (cellType == PrunnedBranchCell) {
-            // console.log("Is pruned");
             uint8 this_hash_i = getHashesCount(mask) - 1;
             if (hash_i != this_hash_i) {
                 uint256 cursor = 16 +
@@ -1252,7 +1245,6 @@ contract BocHeaderAdapter {
                     8;
                 cells[cellIdx].cursor = cursor;
                 uint16 childDepth = readUint16(cells, cellIdx, 16);
-                // console.log("Got data from bits", this_hash_i, hash_i, childDepth);
                 cells[cellIdx].cursor -= cursor;
 
                 return childDepth;
@@ -1277,18 +1269,16 @@ contract BocHeaderAdapter {
             1;
 
         uint32 tag = readUint32(proofTreeOfCells, proofRootIdx, 32);
-        // console.log("GlobalId?:", tag);
-        // blockInfo? (pruned)
+        // console.log("GlobalId:", tag);
+        // blockInfo^ (pruned)
         uint blockInfoIdx = readCell(proofTreeOfCells, proofRootIdx);
         // require(check_block_info(proofTreeOfCells, blockInfoIdx, transaction), "lt doesn't belong to block interval");
-        // value flow? (pruned)
+        // value flow^ (pruned)
         readCell(proofTreeOfCells, proofRootIdx);
-        // state_update? (pruned)
+        // state_update^ (pruned)
         readCell(proofTreeOfCells, proofRootIdx);
         uint256 extraIdx = readCell(proofTreeOfCells, proofRootIdx);
-        // console.log("extra id", extraIdx);
         return parse_block_extra(proofTreeOfCells, extraIdx, txRootHash, transaction);
-        //return proofTreeOfCells[proofRootIdx];
     }
 
     // function readUintLeq(CellData[100] memory cells, uint cellIdx, uint n) public view returns (uint) {
@@ -1335,7 +1325,7 @@ contract BocHeaderAdapter {
     //     // vert_seq_no
     //     // readUint32(cells, cellIdx, 32);
     //     cells[cellIdx].cursor += 64;
-    //     // shard Ident TODO
+    //     // shard Ident
     //     readUint8(cells, cellIdx, 2);
     //     readUintLeq(cells, cellIdx, 60);
     //     readUint32(cells, cellIdx, 32);
@@ -1361,21 +1351,15 @@ contract BocHeaderAdapter {
         uint32 isBlockExtra = readUint32(cells, cellIdx, 32);
         require(isBlockExtra == 1244919549, "cell is not extra block info");
 
-        // in pruned block cells with extra block data reverted
-        // in_msg_descr? (pruned)
+        // in_msg_descr^ (pruned)
         readCell(cells, cellIdx);
-        // uint256 in_msg_descr = readCell(cells, cellIdx);
-        // out_msg_descr? (pruned)
+        // out_msg_descr^ (pruned)
         readCell(cells, cellIdx);
-        // account_blocks?
+        // account_blocks^
         uint256 account_blocksIdx = readCell(cells, readCell(cells, cellIdx));
-        // console.log("account_blocksIdx", account_blocksIdx);
-
-        // in_msg_descr = readCell(cells, in_msg_descr);
 
         uint256[10] memory accountIdxs = parseDict(
             cells,
-            // account_blocksIdx,
             account_blocksIdx,
             256
         );
@@ -1383,32 +1367,18 @@ contract BocHeaderAdapter {
             if (accountIdxs[i] == 255) {
                 break;
             }
+            // _ (HashmapAugE 256 AccountBlock CurrencyCollection) = ShardAccountBlocks;
             parseCurrencyCollection(cells, accountIdxs[i]);
-            
-
-            // console.log("IN MSG TYPE CHECK", cells[inMsgIdxs[i]].cursor, inMsgType);
-            // console.log(accountIdxs[i]);
-            // console.logBytes(cells[accountIdxs[i]].bits);
-            // console.log(
-            //     "cursor",
-            //     cells[inMsgIdxs[i]].cursor,
-            //     cells[inMsgIdxs[i]].cursor / 8,
-            //     cells[inMsgIdxs[i]].bits.length
-            // );
-            // cells[accountIdxs[i]].cursor += 12; // 7 is so good
-            // console.log("isAccountBlock", readUint8(cells, accountIdxs[i], 4), cells[accountIdxs[i]].cursor);
             require(readUint8(cells, accountIdxs[i], 4) == 5, "is not account block");
             bytes32 addressHash = readBytes32(cells, accountIdxs[i], 32);
+            
             if (addressHash != transaction.addressHash) {
                 continue;
             }
-            // console.log("Block account", accountIdxs[i]);
-            // console.logBytes32(addressHash);
+
             // get transactions of this account
             uint256[10] memory txIdxs = parseDict(cells, accountIdxs[i], 64);
-            // console.log("TX CELLS:");
             for (uint j = 0; j < 10; j++) {
-                // console.log(txIdxs[j]);
                 if (txIdxs[j] == 255) {
                     break;
                 }
@@ -1416,27 +1386,6 @@ contract BocHeaderAdapter {
                     return true;
                 }
             }
-
-            /*
-            
-            msg_import_ext$000 msg:^(Message Any) transaction:^Transaction 
-              = InMsg;
-            
-            import_fees$_ fees_collected:Grams 
-            value_imported:CurrencyCollection = ImportFees;
-            */
-            // parseCurrencyCollection(cells, inMsgIdxs[i]);
-            // uint8 inMsgType = readUint8(cells, inMsgIdxs[i], 3);
-            // console.log(
-            //     "IN MSG TYPE CHECK",
-            //     cells[inMsgIdxs[i]].cursor,
-            //     inMsgType
-            // );
-            // require(inMsgType == 0, "Wrong msg type");
-            // uint256 transactionCellIdx = cells[inMsgIdxs[i]].refs[1];
-            // if (cells[transactionCellIdx]._hash[0] == txRootHash) {
-            //     return true;
-            // }
         }
         return false;
     }
@@ -1451,10 +1400,12 @@ contract BocHeaderAdapter {
         uint256 txRootIdx = txBocInfo.cell_count -
             read_int(txBoc[txBocInfo.roots_offset:], txBocInfo.ref_byte_size) -
             1;
+
         CellData[100] memory txTreeOfCells = get_tree_of_cells(
             txBoc,
             txBocInfo
         );
+
         CellData[100] memory proofTreeOfCells = get_tree_of_cells(
             proofBoc,
             proofBocInfo
@@ -1464,8 +1415,6 @@ contract BocHeaderAdapter {
             txTreeOfCells,
             txRootIdx
         );
-        console.log("Tx addr hash");
-        console.logBytes32(transaction.addressHash);
 
         return
             parse_block(
@@ -1475,15 +1424,5 @@ contract BocHeaderAdapter {
                 txTreeOfCells[txRootIdx]._hash[0],
                 transaction
             );
-        // for(uint i = 0; i < 100; i++) {
-        //     if (proofTreeOfCells[i].cellType == 0) {
-        //         break;
-        //     }
-        //     if (proofTreeOfCells[i]._hash[0] == txTreeOfCells[txRootIdx]._hash[0]) {
-        //         return true;
-        //     }
-        // }
-        // return false;
-        // return proofTreeOfCells;
     }
 }

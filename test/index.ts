@@ -49,47 +49,47 @@ function clearData(data: any) {
 }
 
 describe("Greeter", function () {
-  it("Should deploy Adapter", async function () {
-    const Adapter = await ethers.getContractFactory("BocHeaderAdapter");
-    const adapter = await Adapter.deploy();
+  // it("Should deploy Adapter", async function () {
+  //   const Adapter = await ethers.getContractFactory("BocHeaderAdapter");
+  //   const adapter = await Adapter.deploy();
 
-    const [root] = await ethers.getSigners();
-    await adapter.deployed();
+  //   const [root] = await ethers.getSigners();
+  //   await adapter.deployed();
 
-    // const res = await adapter.proofTx(txBoc, proofBoc);
-    // console.log(res);
+  //   // const res = await adapter.proofTx(txBoc, proofBoc);
+  //   // console.log(res);
 
-    // const res = await adapter.deserialize(bufBlock);
-    // const res = await adapter.deserializeMsgData(bufBlock);
-    // console.log("RESULT OF DESERIALIZE: ===========");
-    const bocHeaderInfo = await adapter.parse_serialized_header(proofBoc);
-    // console.log("Boc Header: ============");
-    // console.log(clearData(bocHeaderInfo));
+  //   // const res = await adapter.deserialize(bufBlock);
+  //   // const res = await adapter.deserializeMsgData(bufBlock);
+  //   // console.log("RESULT OF DESERIALIZE: ===========");
+  //   // const bocHeaderInfo = await adapter.parse_serialized_header(proofBoc);
+  //   // console.log("Boc Header: ============");
+  //   // console.log(clearData(bocHeaderInfo));
 
-    const cells = await adapter.get_tree_of_cells(proofBoc, bocHeaderInfo); // 14 [13 [12! 11 [10 [9! 8 [7! 6]] 2!]]] !!!!!6
-    // const cells: any = res;
-    console.log("CELLS: ==============");
-    console.log(cells.filter((cell: any, idx: number) => cell.bits !== "0x" && [8].includes(idx)));
-    // console.log(
-    //   cells.filter((cell) => cell.bits !== "0x").map((cell) => cell._hash)
-    // );
+  //   // const cells = await adapter.get_tree_of_cells(proofBoc, bocHeaderInfo);
+  //   // const cells: any = res;
+  //   // console.log("CELLS: ==============");
+  //   // console.log(cells.filter((cell: any, idx: number) => cell.bits !== "0x"));
+  //   // console.log(
+  //   //   cells.filter((cell) => cell.bits !== "0x").map((cell) => cell._hash)
+  //   // );
 
-    // console.log("Transaction info: ==============");
-    // console.log(clearData(res));
-    // console.log("In Message: ==============");
-    // console.log(clearData(res.messages.inMessage));
-    // console.log("Out Messages: ==============");
-    // console.log(clearData(res.messages.outMessages[0]));
+  //   // console.log("Transaction info: ==============");
+  //   // console.log(clearData(res));
+  //   // console.log("In Message: ==============");
+  //   // console.log(clearData(res.messages.inMessage));
+  //   // console.log("Out Messages: ==============");
+  //   // console.log(clearData(res.messages.outMessages[0]));
 
-    // const data = await adapter.deserializeMsgData(bufBlock);
-    // console.log("Data: ==============");
-    // console.log(clearData(data));
-    // console.log(root.address);
-    // const tx = await adapter.deserializeBoc(bufBlock);
-    // console.log(tx.value);
-    // console.log(rTx.);
-    // console.log(bufBlock);
-  });
+  //   // const data = await adapter.deserializeMsgData(bufBlock);
+  //   // console.log("Data: ==============");
+  //   // console.log(clearData(data));
+  //   // console.log(root.address);
+  //   // const tx = await adapter.deserializeBoc(bufBlock);
+  //   // console.log(tx.value);
+  //   // console.log(rTx.);
+  //   // console.log(bufBlock);
+  // });
 
   it("tx root cell included in pruned block tree of cells and has same hash", async function() {
     const Adapter = await ethers.getContractFactory("BocHeaderAdapter");
@@ -99,6 +99,7 @@ describe("Greeter", function () {
     await adapter.deployed();
 
     const res = await adapter.proofTx(txBoc, proofBoc);
+    await adapter.checkFee(txBoc, proofBoc);
     expect(res).to.be.equal(true);
   })
 });
