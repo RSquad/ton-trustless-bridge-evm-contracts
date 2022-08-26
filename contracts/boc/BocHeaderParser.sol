@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity >=0.8.5 <0.9.0;
 
-import "../types/bag-of-cells-info.sol";
+import "../types/BagOfCellsInfo.sol";
 import "./BitReader.sol";
 
 contract BocHeaderParser {

@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity >=0.8.5 <0.9.0;
 
-import "../types/cell-data.sol";
+import "../types/CellData.sol";
 
 // TODO: read not only bit, but byte too when it possible
 
@@ -121,7 +121,7 @@ library BitReader {
         return value;
     }
 
-    function readBytes32ByteSize(
+    function readBytes32BitSize(
         bytes calldata data,
         CellData[100] memory cells,
         uint256 cellIdx,
@@ -136,7 +136,7 @@ library BitReader {
         return buffer;
     }
 
-    function readBytes32BitSize(
+    function readBytes32ByteSize(
         bytes calldata data,
         CellData[100] memory cells,
         uint256 cellIdx,
@@ -197,7 +197,7 @@ library BitReader {
         CellData[100] memory cells,
         uint256 cellIdx,
         uint256 keySize
-    ) public view returns (uint256[10] memory cellIdxs) {
+    ) public pure returns (uint256[10] memory cellIdxs) {
         for (uint256 i = 0; i < 10; i++) {
             cellIdxs[i] = 255;
         }
@@ -212,7 +212,7 @@ library BitReader {
         uint256 cellIdx,
         uint256 n,
         uint256[10] memory cellIdxs
-    ) public view {
+    ) public pure {
         uint256 prefixLength = 0;
         uint256 pp = prefix;
 

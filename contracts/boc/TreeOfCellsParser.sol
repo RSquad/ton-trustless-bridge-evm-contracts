@@ -1,8 +1,8 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity >=0.8.5 <0.9.0;
 
-import "../types/bag-of-cells-info.sol";
-import "../types/cell-data.sol";
+import "../types/BagOfCellsInfo.sol";
+import "../types/CellData.sol";
 import "../types/CellSerializationInfo.sol";
 import "./BitReader.sol";
 
