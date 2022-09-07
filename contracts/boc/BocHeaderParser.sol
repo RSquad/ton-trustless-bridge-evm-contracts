@@ -33,7 +33,8 @@ contract BocHeaderParser {
             0, // index_offset
             0, // data_offset
             0, // data_size
-            0 // total_size
+            0, // total_size
+            0 // rootIdx
         );
 
         require(
@@ -132,6 +133,12 @@ contract BocHeaderParser {
             header.data_offset +
             header.data_size +
             (header.has_crc32c ? 4 : 0);
+
+        header.rootIdx =
+            header.cell_count -
+            BitReader.readInt(boc[header.roots_offset:], header.ref_byte_size) -
+            1;
+
         return header;
     }
 }

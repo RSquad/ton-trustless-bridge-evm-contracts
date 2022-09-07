@@ -3,6 +3,7 @@ pragma solidity >=0.8.5 <0.9.0;
 
 import "../types/TransactionTypes.sol";
 import "./BitReader.sol";
+import "hardhat/console.sol";
 
 contract TransactionParser {
     function parseTransactionHeader(
@@ -11,7 +12,6 @@ contract TransactionParser {
         uint256 rootIdx
     ) public pure returns (TransactionHeader memory transaction) {
         transaction.checkCode = BitReader.readUint8(data, cells, rootIdx, 4);
-
         // addressHash
         transaction.addressHash = BitReader.readBytes32ByteSize(
             data,

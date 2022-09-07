@@ -17,4 +17,5 @@ struct BagOfCellsInfo {
     uint256 data_offset;
     uint256 data_size;
     uint256 total_size;
+    uint256 rootIdx;
 }
