@@ -47,3 +47,8 @@ struct TransactionHeader {
     bytes32 fees;
     MessagesHeader messages;
 }
+
+struct TestData {
+    address eth_address;
+    uint256 amount;
+}

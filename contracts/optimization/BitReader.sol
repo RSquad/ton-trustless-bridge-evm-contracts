@@ -5,21 +5,21 @@ import "../types/CellData.sol";
 
 // TODO: read not only bit, but byte too when it possible
 
-library BitReader {
-    function readInt(bytes calldata data, uint256 size)
-        external
-        pure
-        returns (uint256 value)
-    {
-        uint256 res = 0;
-        uint256 cursor = 0;
-        while (size > 0) {
-            res = (res << 8) + uint8(data[cursor]);
-            cursor++;
-            --size;
-        }
-        return res;
-    }
+contract BitReader {
+    // function readInt(bytes calldata data, uint256 size)
+    //     external
+    //     pure
+    //     returns (uint256 value)
+    // {
+    //     uint256 res = 0;
+    //     uint256 cursor = 0;
+    //     while (size > 0) {
+    //         res = (res << 8) + uint8(data[cursor]);
+    //         cursor++;
+    //         --size;
+    //     }
+    //     return res;
+    // }
 
     function readBit(
         bytes calldata data,
