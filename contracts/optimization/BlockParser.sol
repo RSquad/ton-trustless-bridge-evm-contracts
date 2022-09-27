@@ -6,11 +6,58 @@ import "../types/BagOfCellsInfo.sol";
 import "../types/TransactionTypes.sol";
 import "../types/BlockTypes.sol";
 import "hardhat/console.sol";
+// import "../libraries/Ed25519.sol";
+
+struct Vdata {
+    bytes32 node_id;
+    bytes32 r;
+    bytes32 s;
+}
 
 contract BlockParser is BitReader {
     ValidatorDescription[30] validatorSet;
 
-    function getValidators() public view returns (ValidatorDescription[30] memory) {
+    // function verifyValidators(
+    //     bytes calldata signature,
+    //     Vdata[30] calldata vdata
+    // ) public {
+    //     uint256 validatodIdx = validatorSet.length;
+    //     for (uint256 i = 0; i < 30; i++) {
+    //         // 1. found validator
+    //         for (uint256 j = 0; j < validatorSet.length; j++) {
+    //             if (validatorSet[j].node_id == vdata[i].node_id) {
+    //                 validatodIdx = j;
+    //                 break;
+    //             }
+    //         }
+    //         require(validatodIdx != validatorSet.length, "wrong node_id");
+    //         console.log("work?", validatodIdx, i);
+    //         console.logBytes32(validatorSet[validatodIdx].pubkey);
+    //         console.logBytes32(validatorSet[validatodIdx].node_id);
+    //         console.logBytes32(vdata[i].r);
+    //         console.logBytes32(vdata[i].s);
+    //         console.logBytes(signature);
+
+    //         // console.log("r")
+    //         // 2. validate
+    //         if (
+    //             Ed25519.verify(
+    //                 validatorSet[validatodIdx].pubkey,
+    //                 vdata[i].r,
+    //                 vdata[i].s,
+    //                 signature
+    //             )
+    //         ) {
+    //             validatorSet[validatodIdx].verified = true;
+    //         }
+    //     }
+    // }
+
+    function getValidators()
+        public
+        view
+        returns (ValidatorDescription[30] memory)
+    {
         return validatorSet;
     }
 
@@ -26,8 +73,11 @@ contract BlockParser is BitReader {
 
         // extra
         uint256 extraCellIdx = treeOfCells[rootIdx].refs[3];
-        ValidatorDescription[30] memory v = parseBlockExtra(boc, extraCellIdx, treeOfCells);
-    
+        ValidatorDescription[30] memory v = parseBlockExtra(
+            boc,
+            extraCellIdx,
+            treeOfCells
+        );
 
         // ValidatorDescription[30] memory v = parse_block(boc, rootIdx, treeOfCells);
         for (uint256 i = 0; i < v.length; i++) {
