@@ -6,4 +6,5 @@ struct ValidatorDescription {
     uint64 weight;
     bytes32 adnl_addr;
     bytes32 pubkey;
+    bytes32 node_id;
 }

@@ -8,6 +8,40 @@ import "../types/BlockTypes.sol";
 import "hardhat/console.sol";
 
 contract BlockParser is BitReader {
+    ValidatorDescription[30] validatorSet;
+
+    function getValidators() public view returns (ValidatorDescription[30] memory) {
+        return validatorSet;
+    }
+
+    // TODO: onlyowner; only if validatorset is empty
+    function setValidatorSet(
+        bytes calldata boc,
+        uint256 rootIdx,
+        CellData[100] memory treeOfCells
+    ) public {
+        delete validatorSet;
+        uint32 tag = readUint32(boc, treeOfCells, rootIdx, 32);
+        console.log("GlobalId:", tag);
+
+        // extra
+        uint256 extraCellIdx = treeOfCells[rootIdx].refs[3];
+        ValidatorDescription[30] memory v = parseBlockExtra(boc, extraCellIdx, treeOfCells);
+    
+
+        // ValidatorDescription[30] memory v = parse_block(boc, rootIdx, treeOfCells);
+        for (uint256 i = 0; i < v.length; i++) {
+            validatorSet[i] = v[i];
+        }
+        for (uint256 i = 0; i < validatorSet.length; i++) {
+            validatorSet[i].node_id = computeNodeId(validatorSet[i].pubkey);
+        }
+    }
+
+    function computeNodeId(bytes32 publicKey) public pure returns (bytes32) {
+        return sha256(bytes.concat(bytes4(0xc6b41348), publicKey));
+    }
+
     function parse_block(
         bytes calldata boc,
         uint256 rootIdx,
@@ -139,6 +173,7 @@ contract BlockParser is BitReader {
         );
 
         console.log("list of items");
+        // ValidatorDescription[30] memory validators;
         for (uint256 i = 0; i < 30; i++) {
             if (txIdxs[i] == 255) {
                 break;
