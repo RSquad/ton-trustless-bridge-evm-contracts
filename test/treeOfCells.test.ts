@@ -9,7 +9,14 @@ import {
   TransactionParser,
   TreeOfCellsParser,
 } from "../typechain";
-import { fullBlockBoc, proofBoc3, prunedFullBlockBoc, txBoc3 } from "./data/index";
+import {
+  fullBlockBoc,
+  proofBoc3,
+  proofOldValidatorSetBoc,
+  proofValidatorSetBoc,
+  prunedFullBlockBoc,
+  txBoc3,
+} from "./data/index";
 import {
   decodeUTF8,
   encodeUTF8,
@@ -87,13 +94,40 @@ describe("Tree of Cells parser tests", () => {
 
   it("parse block p1-p40", async function () {
     const bocHeader = await treeOfCellsParser.parseSerializedHeader(
-      prunedFullBlockBoc
+      proofOldValidatorSetBoc
     );
     const toc = await treeOfCellsParser.get_tree_of_cells(
-      prunedFullBlockBoc,
+      proofOldValidatorSetBoc,
       bocHeader
     );
-    console.log(bocHeader);
+    // config param p34;
+    console.log(
+      toc
+        .filter((cell) => cell.cursor.gt(0))
+        .map((cell, id) => ({
+          id,
+          special: cell.special,
+          cursor: cell.cursor.toNumber(),
+          refs: cell.refs
+            .filter((ref) => !ref.eq(255))
+            .map((ref) => ref.toNumber()),
+        }))
+    );
+    console.log(bocHeader.rootIdx);
+    const parsed = await blockParser.parse_block(
+      proofOldValidatorSetBoc,
+      bocHeader.rootIdx,
+      toc
+    );
+
+
+    console.log(parsed);
+    // set validator list from boc1
+    
+    // boc2 get validator set
+    // get node_ids for validators from boc2
+    // check signature (ED25519)
+    // set new list of validators
   });
 
   // it("nacl encrypt decrypt", async function () {

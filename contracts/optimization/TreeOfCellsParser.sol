@@ -6,6 +6,8 @@ import "../types/CellData.sol";
 import "../types/CellSerializationInfo.sol";
 import "../types/TransactionTypes.sol";
 
+import "hardhat/console.sol";
+
 // TODO: check has_index == true
 
 contract TreeOfCellsParser {
@@ -144,7 +146,7 @@ contract TreeOfCellsParser {
             header.offset_byte_size
         );
         require(
-            !(header.data_size > header.cell_count << 10),
+            !(header.data_size > header.cell_count << 30),
             "bag-of-cells: invalid header"
         );
 
@@ -163,7 +165,7 @@ contract TreeOfCellsParser {
 
     function get_tree_of_cells(bytes calldata boc, BagOfCellsInfo memory info)
         public
-        pure
+        view
         returns (CellData[100] memory cells)
     {
         uint256[100] memory custom_index = get_indexes(boc, info);
@@ -208,7 +210,7 @@ contract TreeOfCellsParser {
 
     function get_indexes(bytes calldata boc, BagOfCellsInfo memory info)
         public
-        pure
+        view
         returns (uint256[100] memory custom_index)
     {
         require(!info.has_index, "has index logic has not realised");
@@ -235,7 +237,7 @@ contract TreeOfCellsParser {
     function init_cell_serialization_info(
         bytes calldata data,
         uint256 ref_byte_size
-    ) public pure returns (CellSerializationInfo memory cellInfo) {
+    ) public view returns (CellSerializationInfo memory cellInfo) {
         require(!(data.length < 2), "Not enough bytes");
         uint8 d1 = uint8(data[0]);
         uint8 d2 = uint8(data[1]);
@@ -247,6 +249,7 @@ contract TreeOfCellsParser {
         cellInfo.with_hashes = (d1 & 16) != 0;
 
         if (cellInfo.refs_cnt > 4) {
+            console.log(cellInfo.refs_cnt);
             require(
                 !(cellInfo.refs_cnt != 7 || !cellInfo.with_hashes),
                 "Invalid first byte"
@@ -291,7 +294,7 @@ contract TreeOfCellsParser {
         uint256[100] memory custom_index,
         uint256 ref_byte_size,
         uint256 cell_count
-    ) public pure returns (CellData memory cell) {
+    ) public view returns (CellData memory cell) {
         bytes calldata cell_slice = get_cell_slice(
             idx,
             cells_slice,

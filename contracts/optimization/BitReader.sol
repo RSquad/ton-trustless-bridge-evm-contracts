@@ -197,8 +197,8 @@ contract BitReader {
         CellData[100] memory cells,
         uint256 cellIdx,
         uint256 keySize
-    ) public pure returns (uint256[10] memory cellIdxs) {
-        for (uint256 i = 0; i < 10; i++) {
+    ) public pure returns (uint256[30] memory cellIdxs) {
+        for (uint256 i = 0; i < 30; i++) {
             cellIdxs[i] = 255;
         }
         doParse(data, 0, cells, cellIdx, keySize, cellIdxs);
@@ -211,7 +211,7 @@ contract BitReader {
         CellData[100] memory cells,
         uint256 cellIdx,
         uint256 n,
-        uint256[10] memory cellIdxs
+        uint256[30] memory cellIdxs
     ) public pure {
         uint256 prefixLength = 0;
         uint256 pp = prefix;
@@ -246,14 +246,14 @@ contract BitReader {
         }
         if (n - prefixLength == 0) {
             // end
-            for (uint256 i = 0; i < 10; i++) {
+            for (uint256 i = 0; i < 30; i++) {
                 if (cellIdxs[i] == 255) {
                     cellIdxs[i] = cellIdx;
                     break;
                 }
             }
             // cellIdxs[pp] = cellIdx;
-            // res.set(new BN(pp, 2).toString(10), extractor(slice));
+            // res.set(new BN(pp, 2).toString(30), extractor(slice));
         } else {
             uint256 leftIdx = readCell(cells, cellIdx);
             uint256 rightIdx = readCell(cells, cellIdx);

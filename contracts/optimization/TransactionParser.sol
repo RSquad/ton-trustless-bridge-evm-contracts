@@ -94,7 +94,7 @@ contract TransactionParser is BitReader {
         }
 
         if (messagesHeader.hasOutMessages) {
-            uint256[10] memory cellIdxs = parseDict(
+            uint256[30] memory cellIdxs = parseDict(
                 data,
                 cells,
                 readCell(cells, messagesIdx),
