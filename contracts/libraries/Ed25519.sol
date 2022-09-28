@@ -278,7 +278,7 @@ library Ed25519 {
         bytes32 r,
         bytes32 s,
         bytes memory m
-    ) internal pure returns (bool) {
+    ) internal view returns (bool) {
             uint256 hh;
             // Step 1: compute SHA-512(R, A, M)
             {
@@ -448,7 +448,7 @@ library Ed25519 {
                     uint256 zz2 =
                         mulmod(zz, zz, 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed);
                     kkx = xxyy + xxyy;
-                    kku = yy2 - xx2 + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed;
+                    kku = yy2  + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed - xx2;
                     kky = xx2 + yy2;
                     kkv = addmod(
                         zz2 + zz2,
@@ -472,7 +472,7 @@ library Ed25519 {
                     uint256 zz2 =
                         mulmod(zz, zz, 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed);
                     kkx = xxyy + xxyy;
-                    kku = yy2 - xx2 + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed;
+                    kku = yy2 + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed - xx2;
                     kky = xx2 + yy2;
                     kkv = addmod(
                         zz2 + zz2,
@@ -496,8 +496,10 @@ library Ed25519 {
                     uint256 zz2 =
                         mulmod(zz, zz, 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed);
                     kkx = xxyy + xxyy;
-                    kku = yy2 - xx2 + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed;
+                    kku = yy2 + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed - xx2;
                     kky = xx2 + yy2;
+                    // console.log("zz2", zz2);
+                    // console.log("zz2 + zz2", zz2 + zz2);
                     kkv = addmod(
                         zz2 + zz2,
                         0xffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffda - kku,
@@ -524,7 +526,7 @@ library Ed25519 {
                             0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed
                         );
                         cs = cy + cx;
-                        cd = cy - cx + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed;
+                        cd = cy  + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed - cx;
                         c2z = cz + cz;
                     }
                     tables_[1][0][i] = cs;
@@ -550,7 +552,7 @@ library Ed25519 {
                         mulmod(cd, kd, 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed);
                     uint256 ac =
                         mulmod(ct, k2dt, 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed);
-                    kkx = ab - aa + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed;
+                    kkx = ab  + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed - aa;
                     kku = addmod(c2z, ac, 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed);
                     kky = ab + aa;
                     kkv = addmod(
@@ -660,7 +662,7 @@ library Ed25519 {
                                     0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed
                                 );
                             ws = wy + wx;
-                            wd = wy - wx + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed;
+                            wd = wy  + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed - wx;
                             wz = mulmod(
                                 vvu,
                                 vvv,
@@ -693,10 +695,10 @@ library Ed25519 {
                                 tables_[0][2][j],
                                 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed
                             );
-                        vvx = ab - aa + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed;
+                        vvx = ab  + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed - aa;
                         vvu = wz + ac;
                         vvy = ab + aa;
-                        vvv = wz - ac + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed;
+                        vvv = wz  + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed - ac;
                     }
                     if ((hhh & bit) != 0) {
                         uint256 ws;
@@ -717,7 +719,7 @@ library Ed25519 {
                                     0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed
                                 );
                             ws = wy + wx;
-                            wd = wy - wx + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed;
+                            wd = wy  + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed - wx;
                             wz = mulmod(
                                 vvu,
                                 vvv,
@@ -750,8 +752,8 @@ library Ed25519 {
                                 tables_[1][2][j],
                                 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed
                             );
-                        vvx = ab - aa + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed;
-                        vvu = wz - ac + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed;
+                        vvx = ab  + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed - aa;
+                        vvu = wz  + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed - ac;
                         vvy = ab + aa;
                         vvv = wz + ac;
                     }
@@ -774,7 +776,7 @@ library Ed25519 {
                                     0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed
                                 );
                             ws = wy + wx;
-                            wd = wy - wx + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed;
+                            wd = wy  + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed - wx;
                             wz = mulmod(
                                 vvu,
                                 vvv,
@@ -806,8 +808,8 @@ library Ed25519 {
                                 tables_[1][2][j],
                                 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed
                             );
-                        vvx = ab - aa + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed;
-                        vvu = wz - ac + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed;
+                        vvx = ab  + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed - aa;
+                        vvu = wz  + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed - ac;
                         vvy = ab + aa;
                         vvv = wz + ac;
                         break;
@@ -828,7 +830,7 @@ library Ed25519 {
                         uint256 zz2 =
                             mulmod(zz, zz, 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed);
                         vvx = xxyy + xxyy;
-                        vvu = yy2 - xx2 + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed;
+                        vvu = yy2  + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed - xx2;
                         vvy = xx2 + yy2;
                         vvv = addmod(
                             zz2 + zz2,

@@ -25,20 +25,26 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.15",
-    settings: {
-      //   // viaIR: true,
-      optimizer: {
-        enabled: true,
-        runs: 5000,
+    compilers: [
+      {
+        version: "0.8.15",
+        settings: {
+          //   // viaIR: true,
+          optimizer: {
+            enabled: true,
+            runs: 5000,
+          },
+        },
       },
-    },
+      { version: "0.6.8", settings: {} },
+    ],
   },
   networks: {
     hardhat: {
       // gasPrice: 470000000000,
       // blockGasLimit: 9990000000000,
       // chainId: 43112,
+      allowUnlimitedContractSize: true,
     },
     ropsten: {
       url: process.env.ROPSTEN_URL || "",

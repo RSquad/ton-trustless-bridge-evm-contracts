@@ -141,46 +141,46 @@ const cheks = [
   },
 
   // for tests
-  // {
-  //   node_id: "7585bc6bc89e417b7a060f659d462330035f10839b66eda6c99e9236a6bb6715",
-  //   r: "892ddccc9fa72428480177acb92f753f7763962323d4206c2ccd45ee2f192449",
-  //   s: "26de00a470b1c6ec295981202c3cdfeaee3045624db85298d613258bc426b20e",
-  // },
-  // {
-  //   node_id: "7585bc6bc89e417b7a060f659d462330035f10839b66eda6c99e9236a6bb6715",
-  //   r: "892ddccc9fa72428480177acb92f753f7763962323d4206c2ccd45ee2f192449",
-  //   s: "26de00a470b1c6ec295981202c3cdfeaee3045624db85298d613258bc426b20e",
-  // },
-  // {
-  //   node_id: "7585bc6bc89e417b7a060f659d462330035f10839b66eda6c99e9236a6bb6715",
-  //   r: "892ddccc9fa72428480177acb92f753f7763962323d4206c2ccd45ee2f192449",
-  //   s: "26de00a470b1c6ec295981202c3cdfeaee3045624db85298d613258bc426b20e",
-  // },
-  // {
-  //   node_id: "7585bc6bc89e417b7a060f659d462330035f10839b66eda6c99e9236a6bb6715",
-  //   r: "892ddccc9fa72428480177acb92f753f7763962323d4206c2ccd45ee2f192449",
-  //   s: "26de00a470b1c6ec295981202c3cdfeaee3045624db85298d613258bc426b20e",
-  // },
-  // {
-  //   node_id: "7585bc6bc89e417b7a060f659d462330035f10839b66eda6c99e9236a6bb6715",
-  //   r: "892ddccc9fa72428480177acb92f753f7763962323d4206c2ccd45ee2f192449",
-  //   s: "26de00a470b1c6ec295981202c3cdfeaee3045624db85298d613258bc426b20e",
-  // },
-  // {
-  //   node_id: "7585bc6bc89e417b7a060f659d462330035f10839b66eda6c99e9236a6bb6715",
-  //   r: "892ddccc9fa72428480177acb92f753f7763962323d4206c2ccd45ee2f192449",
-  //   s: "26de00a470b1c6ec295981202c3cdfeaee3045624db85298d613258bc426b20e",
-  // },
-  // {
-  //   node_id: "7585bc6bc89e417b7a060f659d462330035f10839b66eda6c99e9236a6bb6715",
-  //   r: "892ddccc9fa72428480177acb92f753f7763962323d4206c2ccd45ee2f192449",
-  //   s: "26de00a470b1c6ec295981202c3cdfeaee3045624db85298d613258bc426b20e",
-  // },
-  // {
-  //   node_id: "7585bc6bc89e417b7a060f659d462330035f10839b66eda6c99e9236a6bb6715",
-  //   r: "892ddccc9fa72428480177acb92f753f7763962323d4206c2ccd45ee2f192449",
-  //   s: "26de00a470b1c6ec295981202c3cdfeaee3045624db85298d613258bc426b20e",
-  // },
+  {
+    node_id: "7585bc6bc89e417b7a060f659d462330035f10839b66eda6c99e9236a6bb6715",
+    r: "892ddccc9fa72428480177acb92f753f7763962323d4206c2ccd45ee2f192449",
+    s: "26de00a470b1c6ec295981202c3cdfeaee3045624db85298d613258bc426b20e",
+  },
+  {
+    node_id: "7585bc6bc89e417b7a060f659d462330035f10839b66eda6c99e9236a6bb6715",
+    r: "892ddccc9fa72428480177acb92f753f7763962323d4206c2ccd45ee2f192449",
+    s: "26de00a470b1c6ec295981202c3cdfeaee3045624db85298d613258bc426b20e",
+  },
+  {
+    node_id: "7585bc6bc89e417b7a060f659d462330035f10839b66eda6c99e9236a6bb6715",
+    r: "892ddccc9fa72428480177acb92f753f7763962323d4206c2ccd45ee2f192449",
+    s: "26de00a470b1c6ec295981202c3cdfeaee3045624db85298d613258bc426b20e",
+  },
+  {
+    node_id: "7585bc6bc89e417b7a060f659d462330035f10839b66eda6c99e9236a6bb6715",
+    r: "892ddccc9fa72428480177acb92f753f7763962323d4206c2ccd45ee2f192449",
+    s: "26de00a470b1c6ec295981202c3cdfeaee3045624db85298d613258bc426b20e",
+  },
+  {
+    node_id: "7585bc6bc89e417b7a060f659d462330035f10839b66eda6c99e9236a6bb6715",
+    r: "892ddccc9fa72428480177acb92f753f7763962323d4206c2ccd45ee2f192449",
+    s: "26de00a470b1c6ec295981202c3cdfeaee3045624db85298d613258bc426b20e",
+  },
+  {
+    node_id: "7585bc6bc89e417b7a060f659d462330035f10839b66eda6c99e9236a6bb6715",
+    r: "892ddccc9fa72428480177acb92f753f7763962323d4206c2ccd45ee2f192449",
+    s: "26de00a470b1c6ec295981202c3cdfeaee3045624db85298d613258bc426b20e",
+  },
+  {
+    node_id: "7585bc6bc89e417b7a060f659d462330035f10839b66eda6c99e9236a6bb6715",
+    r: "892ddccc9fa72428480177acb92f753f7763962323d4206c2ccd45ee2f192449",
+    s: "26de00a470b1c6ec295981202c3cdfeaee3045624db85298d613258bc426b20e",
+  },
+  {
+    node_id: "7585bc6bc89e417b7a060f659d462330035f10839b66eda6c99e9236a6bb6715",
+    r: "892ddccc9fa72428480177acb92f753f7763962323d4206c2ccd45ee2f192449",
+    s: "26de00a470b1c6ec295981202c3cdfeaee3045624db85298d613258bc426b20e",
+  },
 ];
 
 describe("Tree of Cells parser tests", () => {
@@ -288,46 +288,49 @@ describe("Tree of Cells parser tests", () => {
     );
 
     // console.log("checks:", cheks.length);
-    // await blockParser.verifyValidators(
-    //   `0x${signature}`,
-    //   cheks.map((c) => ({
-    //     node_id: `0x${c.node_id}`,
-    //     r: `0x${c.r}`,
-    //     s: `0x${c.s}`,
-    //   })) as any
-    // );
+    // console.log("start verify. data:");
+    // console.log(`0x${signature}`);
+    // console.log({...check})
+    await blockParser.verifyValidators(
+      `0x${signature}`,
+      cheks.map((c) => ({
+        node_id: `0x${c.node_id}`,
+        r: `0x${c.r}`,
+        s: `0x${c.s}`,
+      })) as any
+    );
 
-    const ed25519Factory = await ethers.getContractFactory("TestEd25519");
-    const ed25519 = (await ed25519Factory.deploy()) as TestEd25519;
+    // const ed25519Factory = await ethers.getContractFactory("TestEd25519");
+    // const ed25519 = (await ed25519Factory.deploy()) as TestEd25519;
 
     const parsed = await blockParser.getValidators();
     console.log(parsed);
 
-    for (let i = 1; i < cheks.length; i++) {
-      const validator = parsed.find((v) => {
-        return v.node_id === "0x" + cheks[i].node_id;
-      });
-      if (!validator) {
-        console.log("validator not found");
-        return;
-      }
+    // for (let i = 1; i < cheks.length; i++) {
+    //   const validator = parsed.find((v) => {
+    //     return v.node_id === "0x" + cheks[i].node_id;
+    //   });
+    //   if (!validator) {
+    //     console.log("validator not found");
+    //     return;
+    //   }
 
-      console.log("test", i, cheks[i].node_id);
-      console.log("args: =========");
-      console.log(
-        validator.pubkey,
-        `0x${cheks[i].r}`,
-        `0x${cheks[i].s}`,
-        `0x${signature}`
-      );
-      const val = await ed25519.verify(
-        validator.pubkey,
-        `0x${cheks[i].r}`,
-        `0x${cheks[i].s}`,
-        `0x${signature}`
-      );
-      expect(true).to.eq(val);
-    }
+    //   console.log("test", i, cheks[i].node_id);
+    //   console.log("args: =========");
+    //   console.log(
+    //     validator.pubkey,
+    //     `0x${cheks[i].r}`,
+    //     `0x${cheks[i].s}`,
+    //     `0x${signature}`
+    //   );
+    //   const val = await ed25519.verify(
+    //     validator.pubkey,
+    //     `0x${cheks[i].r}`,
+    //     `0x${cheks[i].s}`,
+    //     `0x${signature}`
+    //   );
+    //   expect(true).to.eq(val);
+    // }
     // set validator list from boc1
 
     // boc2 get validator set

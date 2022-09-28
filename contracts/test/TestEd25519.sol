@@ -10,7 +10,7 @@ contract TestEd25519 {
         bytes32 r,
         bytes32 s,
         bytes memory m
-    ) public pure returns (bool) {
+    ) public view returns (bool) {
         return Ed25519.verify(k, r, s, m);
     }
 }
