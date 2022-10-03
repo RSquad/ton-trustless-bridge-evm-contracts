@@ -7,6 +7,7 @@ import "../types/TransactionTypes.sol";
 import "../types/BlockTypes.sol";
 import "hardhat/console.sol";
 import "../libraries/Ed25519.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 struct Vdata {
     bytes32 node_id;
@@ -14,8 +15,9 @@ struct Vdata {
     bytes32 s;
 }
 
-contract BlockParser is BitReader {
+contract BlockParser is BitReader, Ownable {
     ValidatorDescription[30] validatorSet;
+    uint64 totalWeight = 0;
 
     function verifyValidators(
         bytes calldata signature,
@@ -31,15 +33,7 @@ contract BlockParser is BitReader {
                 }
             }
             require(validatodIdx != validatorSet.length, "wrong node_id");
-            console.log("work?", validatodIdx, i);
-            console.logBytes32(validatorSet[validatodIdx].pubkey);
-            console.logBytes32(validatorSet[validatodIdx].node_id);
-            console.logBytes32(vdata[i].r);
-            console.logBytes32(vdata[i].s);
-            console.logBytes(signature);
 
-            // console.log("r")
-            // 2. validate
             if (
                 Ed25519.verify(
                     validatorSet[validatodIdx].pubkey,
@@ -67,6 +61,20 @@ contract BlockParser is BitReader {
         uint256 rootIdx,
         CellData[100] memory treeOfCells
     ) public {
+        // if current validatorSet is empty, check caller
+        // else check votes
+        if (validatorSet[0].weight == 0) {
+            _checkOwner();
+        } else {
+            uint64 currentWeight = 0;
+            for (uint256 j = 0; j < validatorSet.length; j++) {
+                if (validatorSet[j].verified) {
+                    currentWeight += validatorSet[j].weight;
+                }
+            }
+            require(currentWeight * 3 > totalWeight * 2, "not enought votes");
+        }
+
         delete validatorSet;
         uint32 tag = readUint32(boc, treeOfCells, rootIdx, 32);
         console.log("GlobalId:", tag);
@@ -96,7 +104,7 @@ contract BlockParser is BitReader {
         bytes calldata boc,
         uint256 rootIdx,
         CellData[100] memory treeOfCells
-    ) public view returns (ValidatorDescription[30] memory) {
+    ) public returns (ValidatorDescription[30] memory) {
         uint32 tag = readUint32(boc, treeOfCells, rootIdx, 32);
         console.log("GlobalId:", tag);
 
@@ -109,7 +117,7 @@ contract BlockParser is BitReader {
         bytes calldata boc,
         uint256 cellIdx,
         CellData[100] memory treeOfCells
-    ) public view returns (ValidatorDescription[30] memory) {
+    ) public returns (ValidatorDescription[30] memory) {
         require(
             readUint32(boc, treeOfCells, cellIdx, 32) == 0x4a33f6fd,
             "not a BlockExtra"
@@ -125,7 +133,7 @@ contract BlockParser is BitReader {
         bytes calldata boc,
         uint256 cellIdx,
         CellData[100] memory treeOfCells
-    ) public view returns (ValidatorDescription[30] memory) {
+    ) public returns (ValidatorDescription[30] memory) {
         require(
             readUint16(boc, treeOfCells, cellIdx, 16) == 0xcca5,
             "not a McBlockExtra"
@@ -149,7 +157,7 @@ contract BlockParser is BitReader {
         bytes calldata boc,
         uint256 cellIdx,
         CellData[100] memory treeOfCells
-    ) public view returns (ValidatorDescription[30] memory) {
+    ) public returns (ValidatorDescription[30] memory) {
         // skip useless data
         treeOfCells[cellIdx].cursor += 76;
         // readBytes32BitSize(boc, treeOfCells, cellIdx, 76);
@@ -184,7 +192,7 @@ contract BlockParser is BitReader {
         bytes calldata data,
         uint256 cellIdx,
         CellData[100] memory cells
-    ) public view returns (ValidatorDescription[30] memory validators) {
+    ) public returns (ValidatorDescription[30] memory validators) {
         // for (uint16 i = 17; i < 1024; i++) {
         uint256 skipped = readUint(data, cells, cellIdx, 28);
         // console.log("skipped", i, skipped);
@@ -202,7 +210,7 @@ contract BlockParser is BitReader {
         uint32 utime_until = readUint32(data, cells, cellIdx, 32);
         uint16 total = readUint16(data, cells, cellIdx, 16);
         uint16 main = readUint16(data, cells, cellIdx, 16);
-        uint64 totalWeight = 0;
+        totalWeight = 0;
         console.log("cellIdx", cellIdx);
         console.log(utime_since);
         console.log(utime_until);

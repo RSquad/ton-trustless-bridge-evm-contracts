@@ -300,6 +300,12 @@ describe("Tree of Cells parser tests", () => {
       })) as any
     );
 
+    await blockParser.setValidatorSet(
+      proofOldValidatorSetBoc,
+      bocHeader.rootIdx,
+      toc
+    );
+
     // const ed25519Factory = await ethers.getContractFactory("TestEd25519");
     // const ed25519 = (await ed25519Factory.deploy()) as TestEd25519;
 
