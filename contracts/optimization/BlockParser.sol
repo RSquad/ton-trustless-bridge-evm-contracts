@@ -15,9 +15,20 @@ struct Vdata {
     bytes32 s;
 }
 
+struct CachedCell {
+    uint256 prefixLength;
+    bytes32 hash;
+}
+
 contract BlockParser is BitReader, Ownable {
     ValidatorDescription[30] validatorSet;
     uint64 totalWeight = 0;
+
+    CachedCell[10] prunedCells;
+
+    function getPrunedCells() public view returns (CachedCell[10] memory) {
+        return prunedCells;
+    }
 
     function verifyValidators(
         bytes calldata signature,
@@ -118,10 +129,18 @@ contract BlockParser is BitReader, Ownable {
         uint256 cellIdx,
         CellData[100] memory treeOfCells
     ) public returns (ValidatorDescription[30] memory) {
-        require(
-            readUint32(boc, treeOfCells, cellIdx, 32) == 0x4a33f6fd,
-            "not a BlockExtra"
-        );
+        // console.log("cursor", treeOfCells[cellIdx].cursor, treeOfCells[cellIdx].cursor / 8 );
+        // console.logBytes(boc[treeOfCells[cellIdx].cursor / 8:]);
+        // console.log(treeOfCells[cellIdx].cursor);
+        // console.logBytes(
+        //     boc[treeOfCells[cellIdx].cursor / 8:treeOfCells[cellIdx].cursor /
+        //         8 +
+        //         10]
+        // );
+        uint32 test = readUint32(boc, treeOfCells, cellIdx, 32);
+        // console.log(test, 0x4a33f6fd, cellIdx);
+        // [treeOfCells[cellIdx].cursor / 8 - 10: treeOfCells[cellIdx].cursor / 8 + 32]
+        require(test == 0x4a33f6fd, "not a BlockExtra");
 
         // McBlockExtra
         uint256 customIdx = treeOfCells[cellIdx].refs[3];
@@ -171,6 +190,14 @@ contract BlockParser is BitReader, Ownable {
         uint256 configParamsIdx = readCell(treeOfCells, cellIdx);
         require(configParamsIdx != 255, "No Config Params");
 
+        /////////////////////////////
+        // uint256[30] memory txIdxs = parseDict2(
+        //     boc,
+        //     treeOfCells,
+        //     configParamsIdx,
+        //     32
+        // );
+        /////////////////////////////
         uint256[30] memory txIdxs = parseDict(
             boc,
             treeOfCells,
@@ -260,6 +287,137 @@ contract BlockParser is BitReader, Ownable {
         }
         return validator;
     }
+
+    function parseDict2(
+        bytes calldata data,
+        CellData[100] memory cells,
+        uint256 cellIdx,
+        uint256 keySize
+    ) public returns (uint256[30] memory cellIdxs) {
+        for (uint256 i = 0; i < 30; i++) {
+            cellIdxs[i] = 255;
+        }
+        doParse2(data, 0, cells, cellIdx, keySize, cellIdxs);
+        return cellIdxs;
+    }
+
+    function doParse2(
+        bytes calldata data,
+        uint256 prefix,
+        CellData[100] memory cells,
+        uint256 cellIdx,
+        uint256 n,
+        uint256[30] memory cellIdxs
+    ) public {
+        uint256 prefixLength = 0;
+        uint256 pp = prefix;
+
+        // lb0
+        if (!readBool(data, cells, cellIdx)) {
+            // Short label detected
+            prefixLength = readUnaryLength(data, cells, cellIdx);
+            // console.log("Short label detected", cellIdx, n, prefixLength);
+
+            for (uint256 i = 0; i < prefixLength; i++) {
+                pp = (pp << 1) + readBit(data, cells, cellIdx);
+            }
+        } else {
+            // lb1
+            if (!readBool(data, cells, cellIdx)) {
+                // long label detected
+                prefixLength = readUint64(
+                    data,
+                    cells,
+                    cellIdx,
+                    uint8(log2Ceil(n))
+                );
+                // console.log("Long label detected", cellIdx, n, prefixLength);
+                for (uint256 i = 0; i < prefixLength; i++) {
+                    pp = (pp << 1) + readBit(data, cells, cellIdx);
+                }
+            } else {
+                // Same label detected
+                uint256 bit = readBit(data, cells, cellIdx);
+                prefixLength = readUint64(
+                    data,
+                    cells,
+                    cellIdx,
+                    uint8(log2Ceil(n))
+                );
+                // console.log("Same label detected", cellIdx, n, prefixLength);
+                for (uint256 i = 0; i < prefixLength; i++) {
+                    pp = (pp << 1) + bit;
+                }
+            }
+        }
+        if (n - prefixLength == 0) {
+            console.log("warning, we have validator in base pruned boc");
+            // end
+            // for (uint256 i = 0; i < 30; i++) {
+            //     if (cellIdxs[i] == 255) {
+            //         cellIdxs[i] = cellIdx;
+            //         break;
+            //     }
+            // }
+            // cellIdxs[pp] = cellIdx;
+            // res.set(new BN(pp, 2).toString(30), extractor(slice));
+        } else {
+            uint256 leftIdx = readCell(cells, cellIdx);
+            uint256 rightIdx = readCell(cells, cellIdx);
+            // NOTE: Left and right branches are implicitly contain prefixes '0' and '1'
+            if (leftIdx != 255 && !cells[leftIdx].special) {
+                doParse(
+                    data,
+                    pp << 1,
+                    cells,
+                    leftIdx,
+                    n - prefixLength - 1,
+                    cellIdxs
+                );
+            } else if (cells[leftIdx].special) {
+                CachedCell memory sdata = CachedCell(
+                    n - prefixLength - 1,
+                    bytes32(
+                        data[cells[leftIdx].cursor / 8:cells[leftIdx].cursor /
+                            8 +
+                            32]
+                    )
+                );
+                for (uint256 i = 0; i < 10; i++) {
+                    if (prunedCells[i].prefixLength == 0) {
+                        prunedCells[i] = sdata;
+                        break;
+                    }
+                }
+            }
+            if (rightIdx != 255 && !cells[rightIdx].special) {
+                doParse(
+                    data,
+                    pp << (1 + 1),
+                    cells,
+                    rightIdx,
+                    n - prefixLength - 1,
+                    cellIdxs
+                );
+            }  else if (cells[rightIdx].special) {
+                CachedCell memory sdata = CachedCell(
+                    n - prefixLength - 1,
+                    bytes32(
+                        data[cells[rightIdx].cursor / 8:cells[rightIdx].cursor /
+                            8 +
+                            32]
+                    )
+                );
+                for (uint256 i = 0; i < 10; i++) {
+                    if (prunedCells[i].prefixLength == 0) {
+                        prunedCells[i] = sdata;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
     // function parse_block(
     //     bytes calldata proofBoc,
     //     BagOfCellsInfo memory proofBocInfo,
