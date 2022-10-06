@@ -18,7 +18,7 @@ import {
   prunedFullBlockBoc,
   txBoc3,
 } from "./data/index";
-import { baseBlockPart } from "./data/key_block";
+import { baseBlockPart, bocLeaf0 } from "./data/key_block";
 import {
   decodeUTF8,
   encodeUTF8,
@@ -270,8 +270,79 @@ describe("Tree of Cells parser tests", () => {
     );
     // console.log(baseBlockPart.toString("hex"));
     // config param p34;
+    // console.log(
+    //   toc
+    //     .filter((cell) => cell.cursor.gt(0))
+    //     .map((cell, id, a) => ({
+    //       id,
+    //       special: cell.special,
+    //       cursor: cell.cursor.toNumber(),
+    //       refs: cell.refs
+    //         .filter((ref) => !ref.eq(255))
+    //         .map((ref) => ref.toNumber()),
+    //       data: baseBlockPart
+    //         .toString("hex")
+    //         // .slice(bocHeader.data_offset.toNumber())
+    //         .slice(
+    //           Math.floor(cell.cursor.div(4).toNumber()),
+    //           // Math.floor(cell.cursor.div(8).toNumber()) +
+    //           id === 0 ? 128 : Math.floor(a[id - 1].cursor.toNumber() / 4)
+    //         ),
+    //       bytesStart: cell.cursor.toNumber() % 8,
+    //       // distance:
+    //       //   id === 0
+    //       //     ? 128
+    //       //     : Math.floor(a[id - 1].cursor.toNumber() / 8) -
+    //       //       Math.floor(cell.cursor.div(8).toNumber()),
+    //     }))
+    // );
+    console.log(bocHeader.rootIdx);
+    // const parsed = await blockParser.parse_block(
+    // await blockParser.setValidatorSet(
+    //   baseBlockPart,
+    //   bocHeader.rootIdx,
+    //   toc
+    // );
+
+    // console.log("checks:", cheks.length);
+    // console.log("start verify. data:");
+    // console.log(`0x${signature}`);
+    // console.log({...check})
+    // await blockParser.verifyValidators(
+    //   `0x${signature}`,
+    //   cheks.map((c) => ({
+    //     node_id: `0x${c.node_id}`,
+    //     r: `0x${c.r}`,
+    //     s: `0x${c.s}`,
+    //   })) as any
+    // );
+
+    // await blockParser.setValidatorSet(
+    //   proofOldValidatorSetBoc,
+    //   bocHeader.rootIdx,
+    //   toc
+    // );
+
+    // const ed25519Factory = await ethers.getContractFactory("TestEd25519");
+    // const ed25519 = (await ed25519Factory.deploy()) as TestEd25519;
+
+    // const parsed = await blockParser.getValidators();
+    // console.log(parsed);
+
+    await blockParser.parse_block2(baseBlockPart, bocHeader.rootIdx, toc);
+    const d = await blockParser.getPrunedCells();
+
+    // console.log(d);
+
+    const bocHeader2 = await treeOfCellsParser.parseSerializedHeader(bocLeaf0);
+    // console.log(bocLeaf0.toString("hex"));
+    const toc2 = await treeOfCellsParser.get_tree_of_cells(
+      bocLeaf0,
+      bocHeader2
+    );
+
     console.log(
-      toc
+      toc2
         .filter((cell) => cell.cursor.gt(0))
         .map((cell, id, a) => ({
           id,
@@ -296,38 +367,14 @@ describe("Tree of Cells parser tests", () => {
           //       Math.floor(cell.cursor.div(8).toNumber()),
         }))
     );
-    console.log(bocHeader.rootIdx);
-    // const parsed = await blockParser.parse_block(
-    await blockParser.setValidatorSet(
-      baseBlockPart,
-      bocHeader.rootIdx,
-      toc
+
+    const validatorsPart = await blockParser.parsePartValidators(
+      bocLeaf0,
+      bocHeader2.rootIdx,
+      toc2
     );
 
-    // console.log("checks:", cheks.length);
-    // console.log("start verify. data:");
-    // console.log(`0x${signature}`);
-    // console.log({...check})
-    // await blockParser.verifyValidators(
-    //   `0x${signature}`,
-    //   cheks.map((c) => ({
-    //     node_id: `0x${c.node_id}`,
-    //     r: `0x${c.r}`,
-    //     s: `0x${c.s}`,
-    //   })) as any
-    // );
-
-    // await blockParser.setValidatorSet(
-    //   proofOldValidatorSetBoc,
-    //   bocHeader.rootIdx,
-    //   toc
-    // );
-
-    // const ed25519Factory = await ethers.getContractFactory("TestEd25519");
-    // const ed25519 = (await ed25519Factory.deploy()) as TestEd25519;
-
-    const parsed = await blockParser.getValidators();
-    console.log(parsed);
+    console.log(validatorsPart);
 
     // for (let i = 1; i < cheks.length; i++) {
     //   const validator = parsed.find((v) => {

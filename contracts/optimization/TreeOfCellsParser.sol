@@ -5,15 +5,22 @@ import "../types/BagOfCellsInfo.sol";
 import "../types/CellData.sol";
 import "../types/CellSerializationInfo.sol";
 import "../types/TransactionTypes.sol";
+import "./BitReader.sol";
 
 import "hardhat/console.sol";
 
 // TODO: check has_index == true
 
-contract TreeOfCellsParser {
+contract TreeOfCellsParser is BitReader {
     bytes4 public constant BOC_IDX = 0x68ff65f3;
     bytes4 public constant BOC_IDX_CRC32C = 0xacc3a728;
     bytes4 public constant BOC_GENERIC = 0xb5ee9c72;
+
+    uint8 public constant OrdinaryCell = 255;
+    uint8 public constant PrunnedBranchCell = 1;
+    uint8 public constant LibraryCell = 2;
+    uint8 public constant MerkleProofCell = 3;
+    uint8 public constant MerkleUpdateCell = 4;
 
     function readInt(bytes calldata data, uint256 size)
         public

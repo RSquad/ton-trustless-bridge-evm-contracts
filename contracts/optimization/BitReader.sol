@@ -2,6 +2,7 @@
 pragma solidity >=0.8.5 <0.9.0;
 
 import "../types/CellData.sol";
+import "hardhat/console.sol";
 
 // TODO: read not only bit, but byte too when it possible
 
@@ -197,8 +198,8 @@ contract BitReader {
         CellData[100] memory cells,
         uint256 cellIdx,
         uint256 keySize
-    ) public pure returns (uint256[30] memory cellIdxs) {
-        for (uint256 i = 0; i < 30; i++) {
+    ) public view returns (uint256[32] memory cellIdxs) {
+        for (uint256 i = 0; i < 32; i++) {
             cellIdxs[i] = 255;
         }
         doParse(data, 0, cells, cellIdx, keySize, cellIdxs);
@@ -211,8 +212,8 @@ contract BitReader {
         CellData[100] memory cells,
         uint256 cellIdx,
         uint256 n,
-        uint256[30] memory cellIdxs
-    ) public pure {
+        uint256[32] memory cellIdxs
+    ) public view {
         uint256 prefixLength = 0;
         uint256 pp = prefix;
 
@@ -244,16 +245,17 @@ contract BitReader {
                 }
             }
         }
+        console.log("worked?", cellIdx, prefixLength, n);
         if (n - prefixLength == 0) {
             // end
-            for (uint256 i = 0; i < 30; i++) {
+            for (uint256 i = 0; i < 32; i++) {
                 if (cellIdxs[i] == 255) {
                     cellIdxs[i] = cellIdx;
                     break;
                 }
             }
             // cellIdxs[pp] = cellIdx;
-            // res.set(new BN(pp, 2).toString(30), extractor(slice));
+            // res.set(new BN(pp, 2).toString(32), extractor(slice));
         } else {
             uint256 leftIdx = readCell(cells, cellIdx);
             uint256 rightIdx = readCell(cells, cellIdx);

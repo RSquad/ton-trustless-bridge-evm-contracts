@@ -10,7 +10,7 @@ contract TransactionParser is BitReader {
         bytes calldata data,
         CellData[100] memory cells,
         uint256 rootIdx
-    ) public pure returns (TransactionHeader memory transaction) {
+    ) public view returns (TransactionHeader memory transaction) {
         transaction.checkCode = readUint8(data, cells, rootIdx, 4);
         // addressHash
         transaction.addressHash = readBytes32ByteSize(
@@ -52,7 +52,7 @@ contract TransactionParser is BitReader {
         bytes calldata data,
         CellData[100] memory cells,
         uint256 cellIdx
-    ) public pure returns (bytes32 coins) {
+    ) public view returns (bytes32 coins) {
         coins = readCoins(data, cells, cellIdx);
         bool check = readBool(data, cells, cellIdx);
         if (check) {
@@ -94,7 +94,7 @@ contract TransactionParser is BitReader {
         }
 
         if (messagesHeader.hasOutMessages) {
-            uint256[30] memory cellIdxs = parseDict(
+            uint256[32] memory cellIdxs = parseDict(
                 data,
                 cells,
                 readCell(cells, messagesIdx),

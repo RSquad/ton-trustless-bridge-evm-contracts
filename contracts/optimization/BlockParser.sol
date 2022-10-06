@@ -21,7 +21,7 @@ struct CachedCell {
 }
 
 contract BlockParser is BitReader, Ownable {
-    ValidatorDescription[30] validatorSet;
+    ValidatorDescription[32] validatorSet;
     uint64 totalWeight = 0;
 
     CachedCell[10] prunedCells;
@@ -32,7 +32,7 @@ contract BlockParser is BitReader, Ownable {
 
     function verifyValidators(
         bytes calldata signature,
-        Vdata[30] calldata vdata
+        Vdata[32] calldata vdata
     ) public {
         uint256 validatodIdx = validatorSet.length;
         for (uint256 i = 0; i < 20; i++) {
@@ -61,7 +61,7 @@ contract BlockParser is BitReader, Ownable {
     function getValidators()
         public
         view
-        returns (ValidatorDescription[30] memory)
+        returns (ValidatorDescription[32] memory)
     {
         return validatorSet;
     }
@@ -92,13 +92,13 @@ contract BlockParser is BitReader, Ownable {
 
         // extra
         uint256 extraCellIdx = treeOfCells[rootIdx].refs[3];
-        ValidatorDescription[30] memory v = parseBlockExtra(
+        ValidatorDescription[32] memory v = parseBlockExtra(
             boc,
             extraCellIdx,
             treeOfCells
         );
 
-        // ValidatorDescription[30] memory v = parse_block(boc, rootIdx, treeOfCells);
+        // ValidatorDescription[32] memory v = parse_block(boc, rootIdx, treeOfCells);
         for (uint256 i = 0; i < v.length; i++) {
             validatorSet[i] = v[i];
         }
@@ -115,7 +115,7 @@ contract BlockParser is BitReader, Ownable {
         bytes calldata boc,
         uint256 rootIdx,
         CellData[100] memory treeOfCells
-    ) public returns (ValidatorDescription[30] memory) {
+    ) public returns (ValidatorDescription[32] memory) {
         uint32 tag = readUint32(boc, treeOfCells, rootIdx, 32);
         console.log("GlobalId:", tag);
 
@@ -128,7 +128,7 @@ contract BlockParser is BitReader, Ownable {
         bytes calldata boc,
         uint256 cellIdx,
         CellData[100] memory treeOfCells
-    ) public returns (ValidatorDescription[30] memory) {
+    ) public returns (ValidatorDescription[32] memory) {
         // console.log("cursor", treeOfCells[cellIdx].cursor, treeOfCells[cellIdx].cursor / 8 );
         // console.logBytes(boc[treeOfCells[cellIdx].cursor / 8:]);
         // console.log(treeOfCells[cellIdx].cursor);
@@ -152,7 +152,7 @@ contract BlockParser is BitReader, Ownable {
         bytes calldata boc,
         uint256 cellIdx,
         CellData[100] memory treeOfCells
-    ) public returns (ValidatorDescription[30] memory) {
+    ) public returns (ValidatorDescription[32] memory) {
         require(
             readUint16(boc, treeOfCells, cellIdx, 16) == 0xcca5,
             "not a McBlockExtra"
@@ -176,7 +176,7 @@ contract BlockParser is BitReader, Ownable {
         bytes calldata boc,
         uint256 cellIdx,
         CellData[100] memory treeOfCells
-    ) public returns (ValidatorDescription[30] memory) {
+    ) public returns (ValidatorDescription[32] memory) {
         // skip useless data
         treeOfCells[cellIdx].cursor += 76;
         // readBytes32BitSize(boc, treeOfCells, cellIdx, 76);
@@ -190,21 +190,13 @@ contract BlockParser is BitReader, Ownable {
         uint256 configParamsIdx = readCell(treeOfCells, cellIdx);
         require(configParamsIdx != 255, "No Config Params");
 
-        /////////////////////////////
-        // uint256[30] memory txIdxs = parseDict2(
-        //     boc,
-        //     treeOfCells,
-        //     configParamsIdx,
-        //     32
-        // );
-        /////////////////////////////
-        uint256[30] memory txIdxs = parseDict(
+        uint256[32] memory txIdxs = parseDict(
             boc,
             treeOfCells,
             configParamsIdx,
             32
         );
-        for (uint256 i = 0; i < 30; i++) {
+        for (uint256 i = 0; i < 32; i++) {
             if (txIdxs[i] == 255) {
                 break;
             }
@@ -219,7 +211,7 @@ contract BlockParser is BitReader, Ownable {
         bytes calldata data,
         uint256 cellIdx,
         CellData[100] memory cells
-    ) public returns (ValidatorDescription[30] memory validators) {
+    ) public returns (ValidatorDescription[32] memory validators) {
         // for (uint16 i = 17; i < 1024; i++) {
         uint256 skipped = readUint(data, cells, cellIdx, 28);
         // console.log("skipped", i, skipped);
@@ -250,7 +242,7 @@ contract BlockParser is BitReader, Ownable {
         console.log(totalWeight);
         uint256 subcellIdx = readCell(cells, cellIdx);
         console.log("cell", subcellIdx);
-        uint256[30] memory txIdxs = parseDict(
+        uint256[32] memory txIdxs = parseDict(
             data,
             cells,
             readCell(cells, subcellIdx),
@@ -258,8 +250,8 @@ contract BlockParser is BitReader, Ownable {
         );
 
         console.log("list of items");
-        // ValidatorDescription[30] memory validators;
-        for (uint256 i = 0; i < 30; i++) {
+        // ValidatorDescription[32] memory validators;
+        for (uint256 i = 0; i < 32; i++) {
             if (txIdxs[i] == 255) {
                 break;
             }
@@ -293,8 +285,8 @@ contract BlockParser is BitReader, Ownable {
         CellData[100] memory cells,
         uint256 cellIdx,
         uint256 keySize
-    ) public returns (uint256[30] memory cellIdxs) {
-        for (uint256 i = 0; i < 30; i++) {
+    ) public returns (uint256[32] memory cellIdxs) {
+        for (uint256 i = 0; i < 32; i++) {
             cellIdxs[i] = 255;
         }
         doParse2(data, 0, cells, cellIdx, keySize, cellIdxs);
@@ -307,7 +299,7 @@ contract BlockParser is BitReader, Ownable {
         CellData[100] memory cells,
         uint256 cellIdx,
         uint256 n,
-        uint256[30] memory cellIdxs
+        uint256[32] memory cellIdxs
     ) public {
         uint256 prefixLength = 0;
         uint256 pp = prefix;
@@ -350,23 +342,24 @@ contract BlockParser is BitReader, Ownable {
                 }
             }
         }
+        // console.log("worked?", cellIdx, prefixLength, n);
         if (n - prefixLength == 0) {
             console.log("warning, we have validator in base pruned boc");
             // end
-            // for (uint256 i = 0; i < 30; i++) {
+            // for (uint256 i = 0; i < 32; i++) {
             //     if (cellIdxs[i] == 255) {
             //         cellIdxs[i] = cellIdx;
             //         break;
             //     }
             // }
             // cellIdxs[pp] = cellIdx;
-            // res.set(new BN(pp, 2).toString(30), extractor(slice));
+            // res.set(new BN(pp, 2).toString(32), extractor(slice));
         } else {
             uint256 leftIdx = readCell(cells, cellIdx);
             uint256 rightIdx = readCell(cells, cellIdx);
             // NOTE: Left and right branches are implicitly contain prefixes '0' and '1'
             if (leftIdx != 255 && !cells[leftIdx].special) {
-                doParse(
+                doParse2(
                     data,
                     pp << 1,
                     cells,
@@ -378,9 +371,11 @@ contract BlockParser is BitReader, Ownable {
                 CachedCell memory sdata = CachedCell(
                     n - prefixLength - 1,
                     bytes32(
-                        data[cells[leftIdx].cursor / 8:cells[leftIdx].cursor /
+                        data[cells[leftIdx].cursor / 8 + 2:cells[leftIdx]
+                            .cursor /
                             8 +
-                            32]
+                            32 +
+                            2]
                     )
                 );
                 for (uint256 i = 0; i < 10; i++) {
@@ -391,7 +386,7 @@ contract BlockParser is BitReader, Ownable {
                 }
             }
             if (rightIdx != 255 && !cells[rightIdx].special) {
-                doParse(
+                doParse2(
                     data,
                     pp << (1 + 1),
                     cells,
@@ -399,13 +394,15 @@ contract BlockParser is BitReader, Ownable {
                     n - prefixLength - 1,
                     cellIdxs
                 );
-            }  else if (cells[rightIdx].special) {
+            } else if (cells[rightIdx].special) {
                 CachedCell memory sdata = CachedCell(
                     n - prefixLength - 1,
                     bytes32(
-                        data[cells[rightIdx].cursor / 8:cells[rightIdx].cursor /
+                        data[cells[rightIdx].cursor / 8 + 2:cells[rightIdx]
+                            .cursor /
                             8 +
-                            32]
+                            32 +
+                            2]
                     )
                 );
                 for (uint256 i = 0; i < 10; i++) {
@@ -416,6 +413,188 @@ contract BlockParser is BitReader, Ownable {
                 }
             }
         }
+    }
+
+    function parse_block2(
+        bytes calldata boc,
+        uint256 rootIdx,
+        CellData[100] memory treeOfCells
+    ) public {
+        uint32 tag = readUint32(boc, treeOfCells, rootIdx, 32);
+        console.log("GlobalId:", tag);
+
+        // extra
+        uint256 extraCellIdx = treeOfCells[rootIdx].refs[3];
+        parseBlockExtra2(boc, extraCellIdx, treeOfCells);
+    }
+
+    function parseBlockExtra2(
+        bytes calldata boc,
+        uint256 cellIdx,
+        CellData[100] memory treeOfCells
+    ) public {
+        // console.log("cursor", treeOfCells[cellIdx].cursor, treeOfCells[cellIdx].cursor / 8 );
+        // console.logBytes(boc[treeOfCells[cellIdx].cursor / 8:]);
+        // console.log(treeOfCells[cellIdx].cursor);
+        // console.logBytes(
+        //     boc[treeOfCells[cellIdx].cursor / 8:treeOfCells[cellIdx].cursor /
+        //         8 +
+        //         10]
+        // );
+        uint32 test = readUint32(boc, treeOfCells, cellIdx, 32);
+        // console.log(test, 0x4a33f6fd, cellIdx);
+        // [treeOfCells[cellIdx].cursor / 8 - 10: treeOfCells[cellIdx].cursor / 8 + 32]
+        require(test == 0x4a33f6fd, "not a BlockExtra");
+
+        // McBlockExtra
+        uint256 customIdx = treeOfCells[cellIdx].refs[3];
+        require(customIdx != 255, "No McBlockExtra");
+        parseMcBlockExtra2(boc, customIdx, treeOfCells);
+    }
+
+    function parseMcBlockExtra2(
+        bytes calldata boc,
+        uint256 cellIdx,
+        CellData[100] memory treeOfCells
+    ) public {
+        require(
+            readUint16(boc, treeOfCells, cellIdx, 16) == 0xcca5,
+            "not a McBlockExtra"
+        );
+
+        bool isKeyBlock = readBool(boc, treeOfCells, cellIdx);
+        readCell(treeOfCells, cellIdx);
+        readCell(treeOfCells, cellIdx);
+        readCell(treeOfCells, cellIdx);
+        if (isKeyBlock) {
+            // config params
+
+            return parseConfigParams2(boc, cellIdx, treeOfCells);
+        }
+
+        require(false, "is no key block");
+        // return validators;
+    }
+
+    function parseConfigParams2(
+        bytes calldata boc,
+        uint256 cellIdx,
+        CellData[100] memory treeOfCells
+    ) public {
+        // skip useless data
+        treeOfCells[cellIdx].cursor += 76;
+        // readBytes32BitSize(boc, treeOfCells, cellIdx, 76);
+        bytes32 configAddress = readBytes32BitSize(
+            boc,
+            treeOfCells,
+            cellIdx,
+            256
+        );
+        console.logBytes32(configAddress);
+        uint256 configParamsIdx = readCell(treeOfCells, cellIdx);
+        require(configParamsIdx != 255, "No Config Params");
+
+        uint256[32] memory txIdxs = parseDict(
+            boc,
+            treeOfCells,
+            configParamsIdx,
+            32
+        );
+        for (uint256 i = 0; i < 32; i++) {
+            if (txIdxs[i] == 255) {
+                break;
+            }
+
+            configParamsIdx = txIdxs[i];
+        }
+
+        parseConfigParam342(boc, configParamsIdx, treeOfCells);
+    }
+
+    function parseConfigParam342(
+        bytes calldata data,
+        uint256 cellIdx,
+        CellData[100] memory cells
+    ) public {
+        // for (uint16 i = 17; i < 1024; i++) {
+        uint256 skipped = readUint(data, cells, cellIdx, 28);
+        // console.log("skipped", i, skipped);
+        uint8 cType = readUint8(data, cells, cellIdx, 8);
+        // console.log("cType", cType);
+        // if (cType == 17 || cType == 18) {
+        //     break;
+        // } else {
+        //     cells[cellIdx].cursor -= 8 + i;
+        // }
+        // console.log("-------");
+        // }
+
+        uint32 utime_since = readUint32(data, cells, cellIdx, 32);
+        uint32 utime_until = readUint32(data, cells, cellIdx, 32);
+        uint16 total = readUint16(data, cells, cellIdx, 16);
+        uint16 main = readUint16(data, cells, cellIdx, 16);
+        totalWeight = 0;
+        console.log("cellIdx", cellIdx);
+        console.log(utime_since);
+        console.log(utime_until);
+        console.log(total);
+        console.log(main);
+
+        if (cType == 0x12) {
+            totalWeight = readUint64(data, cells, cellIdx, 64);
+        }
+        console.log(totalWeight);
+        uint256 subcellIdx = readCell(cells, cellIdx);
+        console.log("cell", subcellIdx);
+
+        /////////////////////////////
+        uint256[32] memory txIdxs = parseDict2(
+            data,
+            cells,
+            readCell(cells, subcellIdx),
+            16
+        );
+        /////////////////////////////
+        // uint256[32] memory txIdxs = parseDict(
+        //     data,
+        //     cells,
+        //     readCell(cells, subcellIdx),
+        //     16
+        // );
+
+        // console.log("list of items");
+        // // ValidatorDescription[32] memory validators;
+        // for (uint256 i = 0; i < 32; i++) {
+        //     if (txIdxs[i] == 255) {
+        //         break;
+        //     }
+        //     validators[i] = readValidatorDescription(data, txIdxs[i], cells);
+        //     // console.log("id", i, txIdxs[i]);
+        // }
+        // return validators;
+    }
+
+    function parsePartValidators(
+        bytes calldata data,
+        uint256 cellIdx,
+        CellData[100] memory cells
+    ) public view returns (ValidatorDescription[32] memory validators){
+        uint256[32] memory txIdxs = parseDict(
+            data,
+            cells,
+            cellIdx,
+            5
+        );   
+
+        // ValidatorDescription[32] memory validators;
+        for (uint256 i = 0; i < 32; i++) {
+            if (txIdxs[i] == 255) {
+                break;
+            }
+            validators[i] = readValidatorDescription(data, txIdxs[i], cells);
+            // console.log("id", i, txIdxs[i]);
+        }
+        return validators;
     }
 
     // function parse_block(
@@ -528,12 +707,12 @@ contract BlockParser is BitReader, Ownable {
     //     // account_blocks^
     //     uint256 account_blocksIdx = readCell(cells, readCell(cells, cellIdx));
 
-    //     uint256[30] memory accountIdxs = parseDict(
+    //     uint256[32] memory accountIdxs = parseDict(
     //         cells,
     //         account_blocksIdx,
     //         256
     //     );
-    //     for (uint256 i = 0; i < 30; i++) {
+    //     for (uint256 i = 0; i < 32; i++) {
     //         if (accountIdxs[i] == 255) {
     //             break;
     //         }
@@ -547,8 +726,8 @@ contract BlockParser is BitReader, Ownable {
     //         }
 
     //         // get transactions of this account
-    //         uint256[30] memory txIdxs = parseDict(cells, accountIdxs[i], 64);
-    //         for (uint j = 0; j < 30; j++) {
+    //         uint256[32] memory txIdxs = parseDict(cells, accountIdxs[i], 64);
+    //         for (uint j = 0; j < 32; j++) {
     //             if (txIdxs[j] == 255) {
     //                 break;
     //             }

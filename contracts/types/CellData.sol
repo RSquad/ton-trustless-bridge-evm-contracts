@@ -6,4 +6,9 @@ struct CellData {
     uint[4] refs;
     uint cursor;
     uint8 cursorRef;
+
+    bytes32[4] _hash;
+    uint32 level_mask;
+    uint16[4] depth;
+    uint8 cellType;
 }
