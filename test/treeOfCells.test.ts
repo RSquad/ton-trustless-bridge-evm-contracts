@@ -18,7 +18,7 @@ import {
   prunedFullBlockBoc,
   txBoc3,
 } from "./data/index";
-import { baseBlockPart, bocLeaf0 } from "./data/key_block";
+import { baseBlockPart, bocLeaf0, bocLeaf1, bocLeaf2, bocLeaf3, bocLeaf4, bocLeaf5 } from "./data/key_block";
 import {
   decodeUTF8,
   encodeUTF8,
@@ -334,47 +334,90 @@ describe("Tree of Cells parser tests", () => {
 
     // console.log(d);
 
-    const bocHeader2 = await treeOfCellsParser.parseSerializedHeader(bocLeaf0);
-    // console.log(bocLeaf0.toString("hex"));
-    const toc2 = await treeOfCellsParser.get_tree_of_cells(
-      bocLeaf0,
-      bocHeader2
-    );
+    let bocHeader2 = await treeOfCellsParser.parseSerializedHeader(bocLeaf0);
 
-    console.log(
-      toc2
-        .filter((cell) => cell.cursor.gt(0))
-        .map((cell, id, a) => ({
-          id,
-          special: cell.special,
-          cursor: cell.cursor.toNumber(),
-          refs: cell.refs
-            .filter((ref) => !ref.eq(255))
-            .map((ref) => ref.toNumber()),
-          data: baseBlockPart
-            .toString("hex")
-            // .slice(bocHeader.data_offset.toNumber())
-            .slice(
-              Math.floor(cell.cursor.div(4).toNumber()),
-              // Math.floor(cell.cursor.div(8).toNumber()) +
-              id === 0 ? 128 : Math.floor(a[id - 1].cursor.toNumber() / 4)
-            ),
-          bytesStart: cell.cursor.toNumber() % 8,
-          // distance:
-          //   id === 0
-          //     ? 128
-          //     : Math.floor(a[id - 1].cursor.toNumber() / 8) -
-          //       Math.floor(cell.cursor.div(8).toNumber()),
-        }))
-    );
+    let toc2 = await treeOfCellsParser.get_tree_of_cells(bocLeaf0, bocHeader2);
 
-    const validatorsPart = await blockParser.parsePartValidators(
-      bocLeaf0,
+    // console.log(
+    //   toc2
+    //     .filter((cell) => cell.cursor.gt(0))
+    //     .map((cell, id, a) => ({
+    //       id,
+    //       special: cell.special,
+    //       cursor: cell.cursor.toNumber(),
+    //       refs: cell.refs
+    //         .filter((ref) => !ref.eq(255))
+    //         .map((ref) => ref.toNumber()),
+    //       data: baseBlockPart
+    //         .toString("hex")
+    //         // .slice(bocHeader.data_offset.toNumber())
+    //         .slice(
+    //           Math.floor(cell.cursor.div(4).toNumber()),
+    //           // Math.floor(cell.cursor.div(8).toNumber()) +
+    //           id === 0 ? 128 : Math.floor(a[id - 1].cursor.toNumber() / 4)
+    //         ),
+    //       bytesStart: cell.cursor.toNumber() % 8,
+    //       hashes: cell._hash,
+    //       // distance:
+    //       //   id === 0
+    //       //     ? 128
+    //       //     : Math.floor(a[id - 1].cursor.toNumber() / 8) -
+    //       //       Math.floor(cell.cursor.div(8).toNumber()),
+    //     }))
+    // );
+
+    await blockParser.parsePartValidators(bocLeaf0, bocHeader2.rootIdx, toc2);
+
+    let currentBlock: Buffer;
+
+    currentBlock = bocLeaf1;
+    bocHeader2 = await treeOfCellsParser.parseSerializedHeader(currentBlock);
+    toc2 = await treeOfCellsParser.get_tree_of_cells(currentBlock, bocHeader2);
+    await blockParser.parsePartValidators(
+      currentBlock,
       bocHeader2.rootIdx,
       toc2
     );
 
-    console.log(validatorsPart);
+    currentBlock = bocLeaf2;
+    bocHeader2 = await treeOfCellsParser.parseSerializedHeader(currentBlock);
+    toc2 = await treeOfCellsParser.get_tree_of_cells(currentBlock, bocHeader2);
+    await blockParser.parsePartValidators(
+      currentBlock,
+      bocHeader2.rootIdx,
+      toc2
+    );
+
+    currentBlock = bocLeaf3;
+    bocHeader2 = await treeOfCellsParser.parseSerializedHeader(currentBlock);
+    toc2 = await treeOfCellsParser.get_tree_of_cells(currentBlock, bocHeader2);
+    await blockParser.parsePartValidators(
+      currentBlock,
+      bocHeader2.rootIdx,
+      toc2
+    );
+
+    currentBlock = bocLeaf4;
+    bocHeader2 = await treeOfCellsParser.parseSerializedHeader(currentBlock);
+    toc2 = await treeOfCellsParser.get_tree_of_cells(currentBlock, bocHeader2);
+    await blockParser.parsePartValidators(
+      currentBlock,
+      bocHeader2.rootIdx,
+      toc2
+    );
+
+    currentBlock = bocLeaf5;
+    bocHeader2 = await treeOfCellsParser.parseSerializedHeader(currentBlock);
+    toc2 = await treeOfCellsParser.get_tree_of_cells(currentBlock, bocHeader2);
+    await blockParser.parsePartValidators(
+      currentBlock,
+      bocHeader2.rootIdx,
+      toc2
+    );
+
+    const validatorsSetInContract = await blockParser.getValidators();
+
+    console.log(validatorsSetInContract);
 
     // for (let i = 1; i < cheks.length; i++) {
     //   const validator = parsed.find((v) => {

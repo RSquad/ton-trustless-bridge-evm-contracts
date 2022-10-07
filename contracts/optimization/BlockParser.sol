@@ -21,7 +21,7 @@ struct CachedCell {
 }
 
 contract BlockParser is BitReader, Ownable {
-    ValidatorDescription[32] validatorSet;
+    ValidatorDescription[100] validatorSet;
     uint64 totalWeight = 0;
 
     CachedCell[10] prunedCells;
@@ -61,7 +61,7 @@ contract BlockParser is BitReader, Ownable {
     function getValidators()
         public
         view
-        returns (ValidatorDescription[32] memory)
+        returns (ValidatorDescription[100] memory)
     {
         return validatorSet;
     }
@@ -578,7 +578,18 @@ contract BlockParser is BitReader, Ownable {
         bytes calldata data,
         uint256 cellIdx,
         CellData[100] memory cells
-    ) public view returns (ValidatorDescription[32] memory validators){
+    ) public {
+        bool valid = false;
+        uint prefixLength = 0;
+        for (uint i = 0; i < 10; i++) {
+            if(prunedCells[i].hash == cells[cellIdx]._hash[0]) {
+                valid = true;
+                prefixLength = prunedCells[i].prefixLength;
+                delete prunedCells[i];
+                break;
+            }
+        }
+        require(valid, "Wrong boc for validators");
         uint256[32] memory txIdxs = parseDict(
             data,
             cells,
@@ -586,7 +597,7 @@ contract BlockParser is BitReader, Ownable {
             5
         );   
 
-        // ValidatorDescription[32] memory validators;
+        ValidatorDescription[32] memory validators;
         for (uint256 i = 0; i < 32; i++) {
             if (txIdxs[i] == 255) {
                 break;
@@ -594,7 +605,21 @@ contract BlockParser is BitReader, Ownable {
             validators[i] = readValidatorDescription(data, txIdxs[i], cells);
             // console.log("id", i, txIdxs[i]);
         }
-        return validators;
+        for (uint i = 0; i < 32; i++) {
+            for (uint j = 0; j < 100; j++) {
+                // is empty
+                if (validatorSet[j].weight == 0) {
+                    validatorSet[j] = validators[i];
+                    break;
+                }
+                // old validator has less weight then new
+                if (validatorSet[j].weight < validators[i].weight) {
+                    ValidatorDescription memory tmp = validatorSet[j];
+                    validatorSet[j] = validators[i];
+                    validators[i] = tmp;
+                }
+            }
+        }
     }
 
     // function parse_block(
