@@ -245,7 +245,7 @@ contract BitReader {
                 }
             }
         }
-        console.log("worked?", cellIdx, prefixLength, n);
+        // console.log("worked?", cellIdx, prefixLength, n);
         if (n - prefixLength == 0) {
             // end
             for (uint256 i = 0; i < 32; i++) {

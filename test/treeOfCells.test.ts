@@ -18,7 +18,15 @@ import {
   prunedFullBlockBoc,
   txBoc3,
 } from "./data/index";
-import { baseBlockPart, bocLeaf0, bocLeaf1, bocLeaf2, bocLeaf3, bocLeaf4, bocLeaf5 } from "./data/key_block";
+import {
+  baseBlockPart,
+  bocLeaf0,
+  bocLeaf1,
+  bocLeaf2,
+  bocLeaf3,
+  bocLeaf4,
+  bocLeaf5,
+} from "./data/key_block";
 import {
   decodeUTF8,
   encodeUTF8,
@@ -260,14 +268,14 @@ describe("Tree of Cells parser tests", () => {
   // });
 
   it("parse block p1-p40", async function () {
-    const bocHeader = await treeOfCellsParser.parseSerializedHeader(
-      baseBlockPart
-    );
-    // console.log(baseBlockPart.toString("hex"));
-    const toc = await treeOfCellsParser.get_tree_of_cells(
-      baseBlockPart,
-      bocHeader
-    );
+    // const bocHeader = await treeOfCellsParser.parseSerializedHeader(
+    //   baseBlockPart
+    // );
+    // // console.log(baseBlockPart.toString("hex"));
+    // const toc = await treeOfCellsParser.get_tree_of_cells(
+    //   baseBlockPart,
+    //   bocHeader
+    // );
     // console.log(baseBlockPart.toString("hex"));
     // config param p34;
     // console.log(
@@ -296,14 +304,13 @@ describe("Tree of Cells parser tests", () => {
     //       //       Math.floor(cell.cursor.div(8).toNumber()),
     //     }))
     // );
-    console.log(bocHeader.rootIdx);
+    // console.log(bocHeader.rootIdx);
     // const parsed = await blockParser.parse_block(
     // await blockParser.setValidatorSet(
     //   baseBlockPart,
     //   bocHeader.rootIdx,
     //   toc
     // );
-
     // console.log("checks:", cheks.length);
     // console.log("start verify. data:");
     // console.log(`0x${signature}`);
@@ -316,28 +323,20 @@ describe("Tree of Cells parser tests", () => {
     //     s: `0x${c.s}`,
     //   })) as any
     // );
-
     // await blockParser.setValidatorSet(
     //   proofOldValidatorSetBoc,
     //   bocHeader.rootIdx,
     //   toc
     // );
-
     // const ed25519Factory = await ethers.getContractFactory("TestEd25519");
     // const ed25519 = (await ed25519Factory.deploy()) as TestEd25519;
-
     // const parsed = await blockParser.getValidators();
     // console.log(parsed);
-
-    await blockParser.parse_block2(baseBlockPart, bocHeader.rootIdx, toc);
-    const d = await blockParser.getPrunedCells();
-
-    // console.log(d);
-
-    let bocHeader2 = await treeOfCellsParser.parseSerializedHeader(bocLeaf0);
-
-    let toc2 = await treeOfCellsParser.get_tree_of_cells(bocLeaf0, bocHeader2);
-
+    // await blockParser.parse_block2(baseBlockPart, bocHeader.rootIdx, toc);
+    // const d = await blockParser.getPrunedCells();
+    // // console.log(d);
+    // let bocHeader2 = await treeOfCellsParser.parseSerializedHeader(bocLeaf0);
+    // let toc2 = await treeOfCellsParser.get_tree_of_cells(bocLeaf0, bocHeader2);
     // console.log(
     //   toc2
     //     .filter((cell) => cell.cursor.gt(0))
@@ -365,60 +364,50 @@ describe("Tree of Cells parser tests", () => {
     //       //       Math.floor(cell.cursor.div(8).toNumber()),
     //     }))
     // );
-
-    await blockParser.parsePartValidators(bocLeaf0, bocHeader2.rootIdx, toc2);
-
-    let currentBlock: Buffer;
-
-    currentBlock = bocLeaf1;
-    bocHeader2 = await treeOfCellsParser.parseSerializedHeader(currentBlock);
-    toc2 = await treeOfCellsParser.get_tree_of_cells(currentBlock, bocHeader2);
-    await blockParser.parsePartValidators(
-      currentBlock,
-      bocHeader2.rootIdx,
-      toc2
-    );
-
-    currentBlock = bocLeaf2;
-    bocHeader2 = await treeOfCellsParser.parseSerializedHeader(currentBlock);
-    toc2 = await treeOfCellsParser.get_tree_of_cells(currentBlock, bocHeader2);
-    await blockParser.parsePartValidators(
-      currentBlock,
-      bocHeader2.rootIdx,
-      toc2
-    );
-
-    currentBlock = bocLeaf3;
-    bocHeader2 = await treeOfCellsParser.parseSerializedHeader(currentBlock);
-    toc2 = await treeOfCellsParser.get_tree_of_cells(currentBlock, bocHeader2);
-    await blockParser.parsePartValidators(
-      currentBlock,
-      bocHeader2.rootIdx,
-      toc2
-    );
-
-    currentBlock = bocLeaf4;
-    bocHeader2 = await treeOfCellsParser.parseSerializedHeader(currentBlock);
-    toc2 = await treeOfCellsParser.get_tree_of_cells(currentBlock, bocHeader2);
-    await blockParser.parsePartValidators(
-      currentBlock,
-      bocHeader2.rootIdx,
-      toc2
-    );
-
-    currentBlock = bocLeaf5;
-    bocHeader2 = await treeOfCellsParser.parseSerializedHeader(currentBlock);
-    toc2 = await treeOfCellsParser.get_tree_of_cells(currentBlock, bocHeader2);
-    await blockParser.parsePartValidators(
-      currentBlock,
-      bocHeader2.rootIdx,
-      toc2
-    );
-
-    const validatorsSetInContract = await blockParser.getValidators();
-
-    console.log(validatorsSetInContract);
-
+    // await blockParser.parsePartValidators(bocLeaf0, bocHeader2.rootIdx, toc2);
+    // let currentBlock: Buffer;
+    // currentBlock = bocLeaf1;
+    // bocHeader2 = await treeOfCellsParser.parseSerializedHeader(currentBlock);
+    // toc2 = await treeOfCellsParser.get_tree_of_cells(currentBlock, bocHeader2);
+    // await blockParser.parsePartValidators(
+    //   currentBlock,
+    //   bocHeader2.rootIdx,
+    //   toc2
+    // );
+    // currentBlock = bocLeaf2;
+    // bocHeader2 = await treeOfCellsParser.parseSerializedHeader(currentBlock);
+    // toc2 = await treeOfCellsParser.get_tree_of_cells(currentBlock, bocHeader2);
+    // await blockParser.parsePartValidators(
+    //   currentBlock,
+    //   bocHeader2.rootIdx,
+    //   toc2
+    // );
+    // currentBlock = bocLeaf3;
+    // bocHeader2 = await treeOfCellsParser.parseSerializedHeader(currentBlock);
+    // toc2 = await treeOfCellsParser.get_tree_of_cells(currentBlock, bocHeader2);
+    // await blockParser.parsePartValidators(
+    //   currentBlock,
+    //   bocHeader2.rootIdx,
+    //   toc2
+    // );
+    // currentBlock = bocLeaf4;
+    // bocHeader2 = await treeOfCellsParser.parseSerializedHeader(currentBlock);
+    // toc2 = await treeOfCellsParser.get_tree_of_cells(currentBlock, bocHeader2);
+    // await blockParser.parsePartValidators(
+    //   currentBlock,
+    //   bocHeader2.rootIdx,
+    //   toc2
+    // );
+    // currentBlock = bocLeaf5;
+    // bocHeader2 = await treeOfCellsParser.parseSerializedHeader(currentBlock);
+    // toc2 = await treeOfCellsParser.get_tree_of_cells(currentBlock, bocHeader2);
+    // await blockParser.parsePartValidators(
+    //   currentBlock,
+    //   bocHeader2.rootIdx,
+    //   toc2
+    // );
+    // const validatorsSetInContract = await blockParser.getValidators();
+    // console.log(validatorsSetInContract);
     // for (let i = 1; i < cheks.length; i++) {
     //   const validator = parsed.find((v) => {
     //     return v.node_id === "0x" + cheks[i].node_id;
@@ -427,7 +416,6 @@ describe("Tree of Cells parser tests", () => {
     //     console.log("validator not found");
     //     return;
     //   }
-
     //   console.log("test", i, cheks[i].node_id);
     //   console.log("args: =========");
     //   console.log(
@@ -445,7 +433,6 @@ describe("Tree of Cells parser tests", () => {
     //   expect(true).to.eq(val);
     // }
     // set validator list from boc1
-
     // boc2 get validator set
     // get node_ids for validators from boc2
     // check signature (ED25519)

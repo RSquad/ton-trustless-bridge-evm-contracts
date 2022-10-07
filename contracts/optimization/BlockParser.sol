@@ -25,6 +25,12 @@ contract BlockParser is BitReader, Ownable {
     uint64 totalWeight = 0;
 
     CachedCell[10] prunedCells;
+    ValidatorDescription[100] candidatesForValidatorSet;
+    uint64 candidatesTotalWeight = 0;
+
+    function getTotalWeight() public view returns (uint64) {
+        return totalWeight;
+    }
 
     function getPrunedCells() public view returns (CachedCell[10] memory) {
         return prunedCells;
@@ -32,7 +38,7 @@ contract BlockParser is BitReader, Ownable {
 
     function verifyValidators(
         bytes calldata signature,
-        Vdata[32] calldata vdata
+        Vdata[20] calldata vdata
     ) public {
         uint256 validatodIdx = validatorSet.length;
         for (uint256 i = 0; i < 20; i++) {
@@ -43,6 +49,10 @@ contract BlockParser is BitReader, Ownable {
                     break;
                 }
             }
+            // console.log("validator idx:", validatodIdx);
+            // if (validatodIdx == validatorSet.length) {
+            //     continue;
+            // }
             require(validatodIdx != validatorSet.length, "wrong node_id");
 
             if (
@@ -66,12 +76,19 @@ contract BlockParser is BitReader, Ownable {
         return validatorSet;
     }
 
+    function getCandidatesForValidators()
+        public
+        view
+        returns (ValidatorDescription[100] memory)
+    {
+        return candidatesForValidatorSet;
+    }
+
     // TODO: onlyowner; only if validatorset is empty
-    function setValidatorSet(
-        bytes calldata boc,
-        uint256 rootIdx,
-        CellData[100] memory treeOfCells
-    ) public {
+    function setValidatorSet() public // bytes calldata boc,
+    // uint256 rootIdx,
+    // CellData[100] memory treeOfCells
+    {
         // if current validatorSet is empty, check caller
         // else check votes
         if (validatorSet[0].weight == 0) {
@@ -86,25 +103,35 @@ contract BlockParser is BitReader, Ownable {
             require(currentWeight * 3 > totalWeight * 2, "not enought votes");
         }
 
-        delete validatorSet;
-        uint32 tag = readUint32(boc, treeOfCells, rootIdx, 32);
-        console.log("GlobalId:", tag);
+        console.log("UPDATE VALIDATORS");
+        // for (uint256 i = 0; i < 100; i++) {
+        //     validatorSet[i] = candidatesForValidatorSet[i];
+        //     delete candidatesForValidatorSet[i];
+        // }
+        validatorSet = candidatesForValidatorSet;
+        delete candidatesForValidatorSet;
+        
+        totalWeight = candidatesTotalWeight;
+        candidatesTotalWeight = 0;
+        // delete validatorSet;
+        // uint32 tag = readUint32(boc, treeOfCells, rootIdx, 32);
+        // console.log("GlobalId:", tag);
 
         // extra
-        uint256 extraCellIdx = treeOfCells[rootIdx].refs[3];
-        ValidatorDescription[32] memory v = parseBlockExtra(
-            boc,
-            extraCellIdx,
-            treeOfCells
-        );
+        // uint256 extraCellIdx = treeOfCells[rootIdx].refs[3];
+        // ValidatorDescription[32] memory v = parseBlockExtra(
+        //     boc,
+        //     extraCellIdx,
+        //     treeOfCells
+        // );
 
         // ValidatorDescription[32] memory v = parse_block(boc, rootIdx, treeOfCells);
-        for (uint256 i = 0; i < v.length; i++) {
-            validatorSet[i] = v[i];
-        }
-        for (uint256 i = 0; i < validatorSet.length; i++) {
-            validatorSet[i].node_id = computeNodeId(validatorSet[i].pubkey);
-        }
+        // for (uint256 i = 0; i < v.length; i++) {
+        //     validatorSet[i] = v[i];
+        // }
+        // for (uint256 i = 0; i < validatorSet.length; i++) {
+        //     validatorSet[i].node_id = computeNodeId(validatorSet[i].pubkey);
+        // }
     }
 
     function computeNodeId(bytes32 publicKey) public pure returns (bytes32) {
@@ -230,18 +257,18 @@ contract BlockParser is BitReader, Ownable {
         uint16 total = readUint16(data, cells, cellIdx, 16);
         uint16 main = readUint16(data, cells, cellIdx, 16);
         totalWeight = 0;
-        console.log("cellIdx", cellIdx);
-        console.log(utime_since);
-        console.log(utime_until);
-        console.log(total);
-        console.log(main);
+        // console.log("cellIdx", cellIdx);
+        // console.log(utime_since);
+        // console.log(utime_until);
+        // console.log(total);
+        // console.log(main);
 
         if (cType == 0x12) {
             totalWeight = readUint64(data, cells, cellIdx, 64);
         }
-        console.log(totalWeight);
+        // console.log(totalWeight);
         uint256 subcellIdx = readCell(cells, cellIdx);
-        console.log("cell", subcellIdx);
+        // console.log("cell", subcellIdx);
         uint256[32] memory txIdxs = parseDict(
             data,
             cells,
@@ -249,7 +276,7 @@ contract BlockParser is BitReader, Ownable {
             16
         );
 
-        console.log("list of items");
+        // console.log("list of items");
         // ValidatorDescription[32] memory validators;
         for (uint256 i = 0; i < 32; i++) {
             if (txIdxs[i] == 255) {
@@ -534,18 +561,18 @@ contract BlockParser is BitReader, Ownable {
         uint16 total = readUint16(data, cells, cellIdx, 16);
         uint16 main = readUint16(data, cells, cellIdx, 16);
         totalWeight = 0;
-        console.log("cellIdx", cellIdx);
-        console.log(utime_since);
-        console.log(utime_until);
-        console.log(total);
-        console.log(main);
+        // console.log("cellIdx", cellIdx);
+        // console.log(utime_since);
+        // console.log(utime_until);
+        // console.log(total);
+        // console.log(main);
 
         if (cType == 0x12) {
             totalWeight = readUint64(data, cells, cellIdx, 64);
         }
-        console.log(totalWeight);
+        // console.log(totalWeight);
         uint256 subcellIdx = readCell(cells, cellIdx);
-        console.log("cell", subcellIdx);
+        // console.log("cell", subcellIdx);
 
         /////////////////////////////
         uint256[32] memory txIdxs = parseDict2(
@@ -580,9 +607,9 @@ contract BlockParser is BitReader, Ownable {
         CellData[100] memory cells
     ) public {
         bool valid = false;
-        uint prefixLength = 0;
-        for (uint i = 0; i < 10; i++) {
-            if(prunedCells[i].hash == cells[cellIdx]._hash[0]) {
+        uint256 prefixLength = 0;
+        for (uint256 i = 0; i < 10; i++) {
+            if (prunedCells[i].hash == cells[cellIdx]._hash[0]) {
                 valid = true;
                 prefixLength = prunedCells[i].prefixLength;
                 delete prunedCells[i];
@@ -590,12 +617,7 @@ contract BlockParser is BitReader, Ownable {
             }
         }
         require(valid, "Wrong boc for validators");
-        uint256[32] memory txIdxs = parseDict(
-            data,
-            cells,
-            cellIdx,
-            5
-        );   
+        uint256[32] memory txIdxs = parseDict(data, cells, cellIdx, 5);
 
         ValidatorDescription[32] memory validators;
         for (uint256 i = 0; i < 32; i++) {
@@ -605,20 +627,45 @@ contract BlockParser is BitReader, Ownable {
             validators[i] = readValidatorDescription(data, txIdxs[i], cells);
             // console.log("id", i, txIdxs[i]);
         }
-        for (uint i = 0; i < 32; i++) {
-            for (uint j = 0; j < 100; j++) {
+        for (uint256 i = 0; i < 32; i++) {
+            for (uint256 j = 0; j < 100; j++) {
                 // is empty
-                if (validatorSet[j].weight == 0) {
-                    validatorSet[j] = validators[i];
+                if (candidatesForValidatorSet[j].weight == 0) {
+                    candidatesTotalWeight += validators[i].weight;
+                    candidatesForValidatorSet[j] = validators[i];
+                    candidatesForValidatorSet[j].node_id = computeNodeId(candidatesForValidatorSet[j].pubkey);
                     break;
                 }
                 // old validator has less weight then new
-                if (validatorSet[j].weight < validators[i].weight) {
-                    ValidatorDescription memory tmp = validatorSet[j];
-                    validatorSet[j] = validators[i];
+                if (
+                    candidatesForValidatorSet[j].weight < validators[i].weight
+                ) {
+                    candidatesTotalWeight += validators[i].weight;
+                    candidatesTotalWeight -= candidatesForValidatorSet[j]
+                        .weight;
+
+                    ValidatorDescription memory tmp = candidatesForValidatorSet[
+                        j
+                    ];
+                    candidatesForValidatorSet[j] = validators[i];
                     validators[i] = tmp;
+                    
+                    candidatesForValidatorSet[j].node_id = computeNodeId(candidatesForValidatorSet[j].pubkey);
                 }
             }
+        }
+
+        // if it is last validators boc, try to set validators;
+        bool isEmpty = true;
+        for (uint256 i = 0; i < 10; i++) {
+            if (prunedCells[i].prefixLength != 0) {
+                isEmpty = false;
+                break;
+            }
+        }
+        console.log("IS EMPTY:", isEmpty);
+        if (isEmpty) {
+            setValidatorSet();
         }
     }
 
