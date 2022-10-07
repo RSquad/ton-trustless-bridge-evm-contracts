@@ -985,3 +985,5 @@ export const signatures = [
   },
 ];
 // signed with 69%
+
+export const testFileHash = 'b0fc71c0a6d832bbb238d17baf8b815e7631223886af6dbe0c71f1e4a7422547';

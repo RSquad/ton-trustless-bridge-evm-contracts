@@ -27,6 +27,7 @@ contract BlockParser is BitReader, Ownable {
     CachedCell[10] prunedCells;
     ValidatorDescription[100] candidatesForValidatorSet;
     uint64 candidatesTotalWeight = 0;
+    bytes32 root_hash;
 
     function getTotalWeight() public view returns (uint64) {
         return totalWeight;
@@ -37,7 +38,7 @@ contract BlockParser is BitReader, Ownable {
     }
 
     function verifyValidators(
-        bytes calldata signature,
+        bytes32 file_hash,
         Vdata[20] calldata vdata
     ) public {
         uint256 validatodIdx = validatorSet.length;
@@ -49,10 +50,7 @@ contract BlockParser is BitReader, Ownable {
                     break;
                 }
             }
-            // console.log("validator idx:", validatodIdx);
-            // if (validatodIdx == validatorSet.length) {
-            //     continue;
-            // }
+            
             require(validatodIdx != validatorSet.length, "wrong node_id");
 
             if (
@@ -60,10 +58,10 @@ contract BlockParser is BitReader, Ownable {
                     validatorSet[validatodIdx].pubkey,
                     vdata[i].r,
                     vdata[i].s,
-                    signature
+                    bytes.concat(bytes4(0x706e0bc5), root_hash, file_hash)
                 )
             ) {
-                validatorSet[validatodIdx].verified = true;
+                validatorSet[validatodIdx].verified = root_hash;
             }
         }
     }
@@ -84,10 +82,7 @@ contract BlockParser is BitReader, Ownable {
         return candidatesForValidatorSet;
     }
 
-    // TODO: onlyowner; only if validatorset is empty
-    function setValidatorSet() public // bytes calldata boc,
-    // uint256 rootIdx,
-    // CellData[100] memory treeOfCells
+    function setValidatorSet() public 
     {
         // if current validatorSet is empty, check caller
         // else check votes
@@ -96,42 +91,18 @@ contract BlockParser is BitReader, Ownable {
         } else {
             uint64 currentWeight = 0;
             for (uint256 j = 0; j < validatorSet.length; j++) {
-                if (validatorSet[j].verified) {
+                if (validatorSet[j].verified == root_hash) {
                     currentWeight += validatorSet[j].weight;
                 }
             }
             require(currentWeight * 3 > totalWeight * 2, "not enought votes");
         }
 
-        console.log("UPDATE VALIDATORS");
-        // for (uint256 i = 0; i < 100; i++) {
-        //     validatorSet[i] = candidatesForValidatorSet[i];
-        //     delete candidatesForValidatorSet[i];
-        // }
         validatorSet = candidatesForValidatorSet;
         delete candidatesForValidatorSet;
         
         totalWeight = candidatesTotalWeight;
         candidatesTotalWeight = 0;
-        // delete validatorSet;
-        // uint32 tag = readUint32(boc, treeOfCells, rootIdx, 32);
-        // console.log("GlobalId:", tag);
-
-        // extra
-        // uint256 extraCellIdx = treeOfCells[rootIdx].refs[3];
-        // ValidatorDescription[32] memory v = parseBlockExtra(
-        //     boc,
-        //     extraCellIdx,
-        //     treeOfCells
-        // );
-
-        // ValidatorDescription[32] memory v = parse_block(boc, rootIdx, treeOfCells);
-        // for (uint256 i = 0; i < v.length; i++) {
-        //     validatorSet[i] = v[i];
-        // }
-        // for (uint256 i = 0; i < validatorSet.length; i++) {
-        //     validatorSet[i].node_id = computeNodeId(validatorSet[i].pubkey);
-        // }
     }
 
     function computeNodeId(bytes32 publicKey) public pure returns (bytes32) {
@@ -156,17 +127,7 @@ contract BlockParser is BitReader, Ownable {
         uint256 cellIdx,
         CellData[100] memory treeOfCells
     ) public returns (ValidatorDescription[32] memory) {
-        // console.log("cursor", treeOfCells[cellIdx].cursor, treeOfCells[cellIdx].cursor / 8 );
-        // console.logBytes(boc[treeOfCells[cellIdx].cursor / 8:]);
-        // console.log(treeOfCells[cellIdx].cursor);
-        // console.logBytes(
-        //     boc[treeOfCells[cellIdx].cursor / 8:treeOfCells[cellIdx].cursor /
-        //         8 +
-        //         10]
-        // );
         uint32 test = readUint32(boc, treeOfCells, cellIdx, 32);
-        // console.log(test, 0x4a33f6fd, cellIdx);
-        // [treeOfCells[cellIdx].cursor / 8 - 10: treeOfCells[cellIdx].cursor / 8 + 32]
         require(test == 0x4a33f6fd, "not a BlockExtra");
 
         // McBlockExtra
@@ -213,7 +174,7 @@ contract BlockParser is BitReader, Ownable {
             cellIdx,
             256
         );
-        console.logBytes32(configAddress);
+        // console.logBytes32(configAddress);
         uint256 configParamsIdx = readCell(treeOfCells, cellIdx);
         require(configParamsIdx != 255, "No Config Params");
 
@@ -442,11 +403,14 @@ contract BlockParser is BitReader, Ownable {
         }
     }
 
-    function parse_block2(
+    function parseCandidatesRootBlock(
         bytes calldata boc,
         uint256 rootIdx,
         CellData[100] memory treeOfCells
     ) public {
+        candidatesTotalWeight = 0;
+        delete candidatesForValidatorSet;
+
         uint32 tag = readUint32(boc, treeOfCells, rootIdx, 32);
         console.log("GlobalId:", tag);
 
@@ -649,7 +613,7 @@ contract BlockParser is BitReader, Ownable {
                     ];
                     candidatesForValidatorSet[j] = validators[i];
                     validators[i] = tmp;
-                    
+
                     candidatesForValidatorSet[j].node_id = computeNodeId(candidatesForValidatorSet[j].pubkey);
                 }
             }

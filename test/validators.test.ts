@@ -20,6 +20,7 @@ import {
   initialBocLeaf5,
   signature,
   signatures,
+  testFileHash,
 } from "./data/validators_block_signatures_1";
 
 const emptySignature = {
@@ -52,7 +53,7 @@ describe("Tree of Cells parser tests", () => {
     toc = await treeOfCellsParser.get_tree_of_cells(boc, bocHeader);
 
     // load block with prunned validators
-    await blockParser.parse_block2(boc, bocHeader.rootIdx, toc);
+    await blockParser.parseCandidatesRootBlock(boc, bocHeader.rootIdx, toc);
 
     // load validators
     boc = initialBocLeaf0;
@@ -89,12 +90,12 @@ describe("Tree of Cells parser tests", () => {
     validators = validators.filter((validator) => validator.cType !== 0);
     let candidates: any[] = await blockParser.getCandidatesForValidators();
     candidates = candidates.filter((validator) => validator.cType !== 0);
-    console.log(
-      validators.map((v) => ({
-        // verified: v.verified,
-        node_id: v.node_id,
-      }))
-    );
+    // console.log(
+    //   validators.map((v) => ({
+    //     // verified: v.verified,
+    //     node_id: v.node_id,
+    //   }))
+    // );
     // const prunned = await blockParser.getPrunedCells();
     // console.log(prunned);
     expect(validators.length).to.be.equal(100);
@@ -109,7 +110,7 @@ describe("Tree of Cells parser tests", () => {
         subArr.push(signatures[0]);
       }
       await blockParser.verifyValidators(
-        `0x${signature}`,
+        `0x${testFileHash}`,
         subArr.map((c) => ({
           node_id: `0x${c.node_id}`,
           r: `0x${c.r}`,
@@ -118,35 +119,35 @@ describe("Tree of Cells parser tests", () => {
       );
     }
 
-    let currentValidators = await blockParser.getValidators();
+    // let currentValidators = await blockParser.getValidators();
 
-    console.log(
-      currentValidators.map((v) => ({
-        // verified: v.verified,
-        node_id: v.node_id,
-      }))
-    );
-    console.log(
-      "voted validators weight:",
-      currentValidators
-        .reduce((acc, memo) => {
-          if (memo.verified) {
-            return memo.weight.add(acc);
-          }
-          return acc;
-        }, BigNumber.from(0))
-        .toString()
-    );
-    const totalWeight = await blockParser.getTotalWeight();
-    console.log("total weight:", totalWeight);
-    console.log(
-      "total validators weight",
-      currentValidators
-        .reduce((acc, memo) => {
-          return memo.weight.add(acc);
-        }, BigNumber.from(0))
-        .toString()
-    );
+    // console.log(
+    //   currentValidators.map((v) => ({
+    //     // verified: v.verified,
+    //     node_id: v.node_id,
+    //   }))
+    // );
+    // console.log(
+    //   "voted validators weight:",
+    //   currentValidators
+    //     .reduce((acc, memo) => {
+    //       if (memo.verified) {
+    //         return memo.weight.add(acc);
+    //       }
+    //       return acc;
+    //     }, BigNumber.from(0))
+    //     .toString()
+    // );
+    // const totalWeight = await blockParser.getTotalWeight();
+    // console.log("total weight:", totalWeight);
+    // console.log(
+    //   "total validators weight",
+    //   currentValidators
+    //     .reduce((acc, memo) => {
+    //       return memo.weight.add(acc);
+    //     }, BigNumber.from(0))
+    //     .toString()
+    // );
 
     let boc: Buffer;
     let bocHeader: any;
@@ -157,7 +158,7 @@ describe("Tree of Cells parser tests", () => {
     toc = await treeOfCellsParser.get_tree_of_cells(boc, bocHeader);
 
     // load block with prunned validators
-    await blockParser.parse_block2(boc, bocHeader.rootIdx, toc);
+    await blockParser.parseCandidatesRootBlock(boc, bocHeader.rootIdx, toc);
 
     // load validators
     boc = bocLeaf0;
