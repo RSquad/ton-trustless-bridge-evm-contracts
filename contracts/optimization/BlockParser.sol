@@ -95,6 +95,7 @@ contract BlockParser is BitReader, Ownable {
                     currentWeight += validatorSet[j].weight;
                 }
             }
+            console.log("weights:",currentWeight, totalWeight);
             require(currentWeight * 3 > totalWeight * 2, "not enought votes");
         }
 
@@ -217,16 +218,16 @@ contract BlockParser is BitReader, Ownable {
         uint32 utime_until = readUint32(data, cells, cellIdx, 32);
         uint16 total = readUint16(data, cells, cellIdx, 16);
         uint16 main = readUint16(data, cells, cellIdx, 16);
-        totalWeight = 0;
+        // totalWeight = 0;
         // console.log("cellIdx", cellIdx);
         // console.log(utime_since);
         // console.log(utime_until);
         // console.log(total);
         // console.log(main);
 
-        if (cType == 0x12) {
-            totalWeight = readUint64(data, cells, cellIdx, 64);
-        }
+        // if (cType == 0x12) {
+        //     totalWeight = readUint64(data, cells, cellIdx, 64);
+        // }
         // console.log(totalWeight);
         uint256 subcellIdx = readCell(cells, cellIdx);
         // console.log("cell", subcellIdx);
@@ -524,16 +525,16 @@ contract BlockParser is BitReader, Ownable {
         uint32 utime_until = readUint32(data, cells, cellIdx, 32);
         uint16 total = readUint16(data, cells, cellIdx, 16);
         uint16 main = readUint16(data, cells, cellIdx, 16);
-        totalWeight = 0;
+        // totalWeight = 0;
         // console.log("cellIdx", cellIdx);
         // console.log(utime_since);
         // console.log(utime_until);
         // console.log(total);
         // console.log(main);
 
-        if (cType == 0x12) {
-            totalWeight = readUint64(data, cells, cellIdx, 64);
-        }
+        // if (cType == 0x12) {
+        //     totalWeight = readUint64(data, cells, cellIdx, 64);
+        // }
         // console.log(totalWeight);
         uint256 subcellIdx = readCell(cells, cellIdx);
         // console.log("cell", subcellIdx);
