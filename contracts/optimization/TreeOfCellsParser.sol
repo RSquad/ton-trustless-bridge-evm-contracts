@@ -231,7 +231,7 @@ contract TreeOfCellsParser is BitReader {
         cellInfo.with_hashes = (d1 & 16) != 0;
 
         if (cellInfo.refs_cnt > 4) {
-            console.log(cellInfo.refs_cnt);
+            // console.log(cellInfo.refs_cnt);
             require(
                 !(cellInfo.refs_cnt != 7 || !cellInfo.with_hashes),
                 "Invalid first byte"
@@ -311,7 +311,7 @@ contract TreeOfCellsParser is BitReader {
             (cell_info.data_offset + (idx == 0 ? 0 : custom_index[idx - 1])) *
             8;
 
-        // cell.level_mask = cell_info.level_mask;
+        cell.level_mask = cell_info.level_mask;
         return cell;
     }
 
@@ -374,7 +374,6 @@ contract TreeOfCellsParser is BitReader {
 
             calcHashForRefs(boc, cell_info, cells, i, cell_slice);
         }
-
     }
 
     function getHashesCount(uint32 mask) public view returns (uint8) {
@@ -392,13 +391,14 @@ contract TreeOfCellsParser is BitReader {
     }
 
     function getLevelFromMask(uint32 mask) public pure returns (uint8) {
-        uint8 n = 0;
         uint32 maskCopy = mask;
-        for (uint8 i = 0; i < 3; i++) {
-            n += uint8(maskCopy & 1);
+        for (uint8 i = 0; i <= 3; i++) {
+            if (maskCopy == 0) {
+                return i;
+            }
             maskCopy = maskCopy >> 1;
         }
-        return n + 1;
+        return 3;
     }
 
     function getLevel(uint32 mask) public pure returns (uint8) {
@@ -428,6 +428,7 @@ contract TreeOfCellsParser is BitReader {
         if (cells[cellIdx].cellType == PrunnedBranchCell) {
             uint8 this_hash_i = getHashesCount(cells[cellIdx].level_mask) - 1;
             if (hash_i != this_hash_i) {
+                // console.log("cursor before depth", cellIdx, cells[cellIdx].cursor);
                 uint256 cursor = 16 +
                     uint256(this_hash_i) *
                     32 *
@@ -435,14 +436,17 @@ contract TreeOfCellsParser is BitReader {
                     uint256(hash_i) *
                     2 *
                     8;
-                cells[cellIdx].cursor = cursor;
+                cells[cellIdx].cursor += cursor;
+                // console.log("work", cellIdx);
                 uint16 childDepth = readUint16(data, cells, cellIdx, 16);
-                cells[cellIdx].cursor -= cursor;
-
+                // console.log("work2", cellIdx);
+                cells[cellIdx].cursor -= cursor + 16;
+                // console.log("child hash_i", this_hash_i, hash_i ,childDepth);
                 return childDepth;
             }
             hash_i = 0;
         }
+        // console.log("hash_i", cellIdx, cells[cellIdx].level_mask, cells[cellIdx].depth[hash_i]);
         return cells[cellIdx].depth[hash_i];
     }
 
@@ -488,7 +492,21 @@ contract TreeOfCellsParser is BitReader {
                             cells[i].cellType != PrunnedBranchCell),
                         "Cannot deserialize cell"
                     );
-                    _hash = cell_slice[:cell_info.refs_offset];
+                    {
+                    uint8 refsCount = 0;
+                    for (uint t = 0; t < 4; t++) {
+                        if (cells[i].refs[t] == 255) {
+                            break;
+                        }
+                            refsCount++;
+                    }
+                    uint32 new_level_mask = applyLevelMask(level_i, cells[i].level_mask);
+                    // uint8 new_d1 = 
+                    uint8 d1 = uint8(refsCount + (cells[i].special ? 8 : 0) + new_level_mask * 32);
+                    _hash = cell_slice[1:cell_info.refs_offset];
+                    _hash = bytes.concat(bytes1(d1), _hash);
+                    }
+                    // console.log("hash_i == hash_i_offset");
                     // console.logBytes(_hash);
                 } else {
                     require(
@@ -500,6 +518,8 @@ contract TreeOfCellsParser is BitReader {
                         _hash,
                         cells[i]._hash[hash_i - hash_i_offset - 1]
                     );
+                    // console.log("hash_i != hash_i_offset");
+                    // console.logBytes(_hash);
                 }
             }
 
@@ -516,6 +536,20 @@ contract TreeOfCellsParser is BitReader {
                             getDepth(data, level_i, cells, cells[i].refs[j])
                         )
                     );
+                    // {
+                    //     uint256 newDepth = getDepth(
+                    //         data,
+                    //         level_i,
+                    //         cells,
+                    //         cells[i].refs[j]
+                    //     );
+                    //     console.log(
+                    //         "new depth",
+                    //         newDepth,
+                    //         cells[i].depth[hash_i - hash_i_offset],
+                    //         i
+                    //     );
+                    // }
                     if (
                         getDepth(data, level_i, cells, cells[i].refs[j]) >
                         cells[i].depth[hash_i - hash_i_offset]
@@ -530,6 +564,7 @@ contract TreeOfCellsParser is BitReader {
                 }
 
                 cells[i].depth[hash_i - hash_i_offset]++;
+                // console.log("Repr of cells:", i);
                 // console.logBytes(_hash);
                 for (j = 0; j < 4; j++) {
                     if (cells[i].refs[j] == 255) {
@@ -538,19 +573,19 @@ contract TreeOfCellsParser is BitReader {
                     // console.log("LEVEL I:", level_i);
                     _hash = bytes.concat(
                         _hash,
-                        getHash(
-                            data,
-                            level_i,
-                            cells,
-                            cells[i].refs[j]
-                        )
+                        getHash(data, level_i, cells, cells[i].refs[j])
                     );
                 }
+                // console.log("hash for cell with refs", i);
                 // console.logBytes(_hash);
                 cells[i]._hash[hash_i - hash_i_offset] = sha256(_hash);
+                // console.logBytes32(cells[i]._hash[hash_i - hash_i_offset]);
             } else {
                 // console.log("WORING HARD WITHOUT REFS");
+                // console.log("hash for cell without refs", i);
+                // console.logBytes(_hash);
                 cells[i]._hash[hash_i - hash_i_offset] = sha256(_hash);
+                // console.logBytes32(cells[i]._hash[hash_i - hash_i_offset]);
             }
 
             hash_i++;
@@ -572,9 +607,11 @@ contract TreeOfCellsParser is BitReader {
         if (cells[cellIdx].cellType == PrunnedBranchCell) {
             uint8 this_hash_i = getHashesCount(cells[cellIdx].level_mask) - 1;
             if (hash_i != this_hash_i) {
+                console.log("prunned branch keys");
                 uint256 cursor = 16 + uint256(hash_i) * 2 * 8;
+                cells[cellIdx].cursor += cursor;
                 uint256 hash_num = readUint(data, cells, cellIdx, 256);
-                cells[cellIdx].cursor -= cursor;
+                cells[cellIdx].cursor -= cursor + 256;
 
                 return bytes32(hash_num);
             }

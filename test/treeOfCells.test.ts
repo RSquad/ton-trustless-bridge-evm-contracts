@@ -26,13 +26,16 @@ import {
   bocLeaf3,
   bocLeaf4,
   bocLeaf5,
-} from "./data/key_block";
+  file_hash,
+  // bocLeaf6,
+} from "./data/shard_root_hashes_data";
 import {
   decodeUTF8,
   encodeUTF8,
   encodeBase64,
   decodeBase64,
 } from "tweetnacl-util";
+import { signatures } from "./data/shard_root_hashes_data";
 
 const signature =
   "706e0bc54b36c905aaacd2759c71ffb04a326ef6a8957bedc2c0e59f549fbc1faf14f0a091c01c1569e5bad47fe0be72fdba7c1c5af51b147eb3b94e9eb75db50d01c0c4";
@@ -485,4 +488,204 @@ describe("Tree of Cells parser tests", () => {
 
   //   console.log(contractRes);
   // });
+
+  it("test shard info", async function () {
+    let boc: Buffer;
+    let bocHeader: any;
+    let toc: any;
+
+    boc = baseBlockPart;
+    bocHeader = await treeOfCellsParser.parseSerializedHeader(boc);
+    toc = await treeOfCellsParser.get_tree_of_cells(boc, bocHeader);
+
+    console.log(
+      toc
+        .filter((cell: any) => cell.cursor.gt(0))
+        .map((cell: any, id: any, a: any) => ({
+          id,
+          special: cell.special,
+          cursor: cell.cursor.toNumber(),
+          refs: cell.refs
+            .filter((ref: any) => !ref.eq(255))
+            .map((ref: any) => ref.toNumber()),
+          data: boc
+            .toString("hex")
+            // .slice(bocHeader.data_offset.toNumber())
+            .slice(
+              Math.floor(cell.cursor.div(4).toNumber()),
+              // Math.floor(cell.cursor.div(8).toNumber()) +
+              id === 0 ? 128 : Math.floor(a[id - 1].cursor.toNumber() / 4)
+            ),
+          bytesStart: cell.cursor.toNumber() % 8,
+          hash: cell._hash,
+          depth: cell.depth,
+          level_mask: cell.level_mask,
+          // distance:
+          //   id === 0
+          //     ? 128
+          //     : Math.floor(a[id - 1].cursor.toNumber() / 8) -
+          //       Math.floor(cell.cursor.div(8).toNumber()),
+        }))
+    );
+
+    // load block with prunned validators
+    await blockParser.parseCandidatesRootBlock(boc, bocHeader.rootIdx, toc);
+    console.log("END PARSING BASE VALIDATORS SET PART");
+    // load validators
+    boc = bocLeaf0;
+    bocHeader = await treeOfCellsParser.parseSerializedHeader(boc);
+    toc = await treeOfCellsParser.get_tree_of_cells(boc, bocHeader);
+    await blockParser.parsePartValidators(boc, bocHeader.rootIdx, toc);
+    console.log("END PARSING BASE VALIDATORS LEAF 0");
+
+    boc = bocLeaf1;
+    bocHeader = await treeOfCellsParser.parseSerializedHeader(boc);
+    toc = await treeOfCellsParser.get_tree_of_cells(boc, bocHeader);
+    await blockParser.parsePartValidators(boc, bocHeader.rootIdx, toc);
+
+    boc = bocLeaf2;
+    bocHeader = await treeOfCellsParser.parseSerializedHeader(boc);
+    toc = await treeOfCellsParser.get_tree_of_cells(boc, bocHeader);
+    await blockParser.parsePartValidators(boc, bocHeader.rootIdx, toc);
+
+    boc = bocLeaf3;
+    bocHeader = await treeOfCellsParser.parseSerializedHeader(boc);
+    toc = await treeOfCellsParser.get_tree_of_cells(boc, bocHeader);
+    await blockParser.parsePartValidators(boc, bocHeader.rootIdx, toc);
+
+    boc = bocLeaf4;
+    bocHeader = await treeOfCellsParser.parseSerializedHeader(boc);
+    toc = await treeOfCellsParser.get_tree_of_cells(boc, bocHeader);
+    await blockParser.parsePartValidators(boc, bocHeader.rootIdx, toc);
+
+    boc = bocLeaf5;
+    bocHeader = await treeOfCellsParser.parseSerializedHeader(boc);
+    toc = await treeOfCellsParser.get_tree_of_cells(boc, bocHeader);
+    await blockParser.parsePartValidators(boc, bocHeader.rootIdx, toc);
+
+    // boc = bocLeaf6;
+    // bocHeader = await treeOfCellsParser.parseSerializedHeader(boc);
+    // toc = await treeOfCellsParser.get_tree_of_cells(boc, bocHeader);
+    // await blockParser.parsePartValidators(boc, bocHeader.rootIdx, toc);
+
+    await blockParser.setRootHashForValidating(
+      "0x41d7f626340d495783b9a199c17dcb9d8ec4f72cf1c4760d664f14279d67f926"
+    );
+
+    // verify signatures
+    for (let i = 0; i < signatures.length; i += 20) {
+      const subArr = signatures.slice(i, i + 20);
+      while (subArr.length < 20) {
+        subArr.push(signatures[0]);
+      }
+      await blockParser.verifyValidators(
+        `0x${"577d603b0072515d59021f24e26f9c4ad577e7dd30b5e852456e507e500f58d7"}`,
+        subArr.map((c) => ({
+          node_id: `0x${c.node_id}`,
+          r: `0x${c.r}`,
+          s: `0x${c.s}`,
+        })) as any[20]
+      );
+    }
+
+    // const validators = await blockParser.getValidators();
+    // console.log(validators.filter((v) => v.weight.toNumber() !== 0) );
+
+    await blockParser.addCurrentBlockToVerifiedSet();
+
+    // await blockParser.setVerifiedBlock(
+    //   "0x41d7f626340d495783b9a199c17dcb9d8ec4f72cf1c4760d664f14279d67f926",
+    //   24397998
+    // );
+
+    const proof =
+      "te6ccgECEAEAAh8ACUYDQdf2JjQNSVeDuaGZwX3LnY7E9yzxxHYNZk8UJ51n+SYAFQEkEBHvVar///8RAgMEBShIAQEXovQ847xJbVuA0Rdx+cGkdv0fIJZqnC++SHLPfmF5sgABKEgBARxjdqTd4/RYHGqXc93egNdNaZRJM71+blOMsi07cMKjAAMoSAEBZB3jW7QrUzH0EDz1oq38ph35/dIX/Io2ui2iXVtuHBUAFCSJSjP2/bCaLbuK8S4IJq0cgANhUucfvKwDw+8R4FPnuQmXwNaLRVuvB8T1n6t1nLex8fFoTHHExv5LrZqRx4R3ch3DJXfABgcICShIAQHRioo4Y4Vjn+N/qS9eGrvEC7fac2YQ2/Ggz6dYXwcCdgAEAAECKEgBAf/gqrxeeBNlS+9k39m676WM0FPq1tMK4SPRVOLBAhiGAAcjF8ylaHfhBxJDuaygBAoLDAED0EANAD+wAAAAAEAAAAAAAAAAId+EHEkO5rKACHfhBxJDuaygBCEBUA8B21AOPSIoC6JFcAAA6eJtrf4AAADp4m2t/iOnSVXAjJglhUkDocv6CfjePZNQ351MLG+c2zmmRiOaAo8pcvRojseRPGTWrXQbv9ZWH3DVIAb7qw6GjSoVl1SogAAsh3QAAAAAAAAAAAuiRVsafkuyDgATQ78IOJIdzWUAIChIAQFqI07wBSOH0KCaH7yFX0NzfxFyqXpMF8A0hikczMefXAAD";
+
+    boc = Buffer.from(proof, "base64");
+    const header = await treeOfCellsParser.parseSerializedHeader(boc);
+    toc = await treeOfCellsParser.get_tree_of_cells(boc, header);
+
+    console.log(
+      toc
+        .filter((cell: any) => cell.cursor.gt(0))
+        .map((cell: any, id: any, a: any) => ({
+          id,
+          special: cell.special,
+          cursor: cell.cursor.toNumber(),
+          refs: cell.refs
+            .filter((ref: any) => !ref.eq(255))
+            .map((ref: any) => ref.toNumber()),
+          data: boc
+            .toString("hex")
+            // .slice(bocHeader.data_offset.toNumber())
+            .slice(
+              Math.floor(cell.cursor.div(4).toNumber()),
+              // Math.floor(cell.cursor.div(8).toNumber()) +
+              id === 0 ? 128 : Math.floor(a[id - 1].cursor.toNumber() / 4)
+            ),
+          bytesStart: cell.cursor.toNumber() % 8,
+          hash: cell._hash,
+          depth: cell.depth,
+          level_mask: cell.level_mask,
+          // distance:
+          //   id === 0
+          //     ? 128
+          //     : Math.floor(a[id - 1].cursor.toNumber() / 8) -
+          //       Math.floor(cell.cursor.div(8).toNumber()),
+        }))
+    );
+
+    await blockParser.parseShardProofPath(boc, header.rootIdx, toc);
+
+    const proof2 =
+      "b5ee9c72010207010001470009460341d7f626340d495783b9a199c17dcb9d8ec4f72cf1c4760d664f14279d67f926001501241011ef55aaffffff110203040501a09bc7a987000000000401017448ae0000000100ffffffff0000000000000000634fc97a00001d3c4dc5020000001d3c4dc50204850db81f0005901a017448ab01740b89c400000003000000000000002e06284801011c6376a4dde3f4581c6a9773ddde80d74d69944933bd7e6e538cb22d3b70c2a3000328480101641de35bb42b5331f4103cf5a2adfca61df9fdd217fc8a36ba2da25d5b6e1c150014284801018e16f74112aa6d33a2501ba55e60278c241ddcadba9abff1a146d93e5b2cc5da0008009800001d3c4db5bfc4017448ad01fd68bc8d884e312afc948dbf81c5f684bfcc3c353620bf7bed2140da736749601d9283ae98170b1f6bbd25cdf25f122cdc697693fde04f80442a8a4c68b5c6";
+
+    boc = Buffer.from(proof2, "hex");
+    bocHeader = await treeOfCellsParser.parseSerializedHeader(boc);
+    toc = await treeOfCellsParser.get_tree_of_cells(boc, bocHeader);
+
+    await blockParser.addPrevBlock(boc, bocHeader.rootIdx, toc);
+
+    console.log(
+      toc
+        .filter((cell: any) => cell.cursor.gt(0))
+        .map((cell: any, id: any, a: any) => ({
+          id,
+          special: cell.special,
+          cursor: cell.cursor.toNumber(),
+          refs: cell.refs
+            .filter((ref: any) => !ref.eq(255))
+            .map((ref: any) => ref.toNumber()),
+          data: boc
+            .toString("hex")
+            // .slice(bocHeader.data_offset.toNumber())
+            .slice(
+              Math.floor(cell.cursor.div(4).toNumber()),
+              // Math.floor(cell.cursor.div(8).toNumber()) +
+              id === 0 ? 128 : Math.floor(a[id - 1].cursor.toNumber() / 4)
+            ),
+          bytesStart: cell.cursor.toNumber() % 8,
+          hash: cell._hash,
+          depth: cell.depth,
+          level_mask: cell.level_mask,
+          // distance:
+          //   id === 0
+          //     ? 128
+          //     : Math.floor(a[id - 1].cursor.toNumber() / 8) -
+          //       Math.floor(cell.cursor.div(8).toNumber()),
+        }))
+    );
+
+    const isVerified = await blockParser.isVerifiedBlock(
+      "0x74e92ab8119304b0a92074397f413f1bc7b26a1bf3a9858df39b6734c8c47340"
+    );
+
+    console.log("Is new block verified:", isVerified);
+
+    const isVerified2 = await blockParser.isVerifiedBlock(
+      "0x01fd68bc8d884e312afc948dbf81c5f684bfcc3c353620bf7bed2140da736749"
+    );
+    // console.log(signatures);
+    console.log("Is new block verified (previous):", isVerified2);
+  });
 });
