@@ -493,18 +493,26 @@ contract TreeOfCellsParser is BitReader {
                         "Cannot deserialize cell"
                     );
                     {
-                    uint8 refsCount = 0;
-                    for (uint t = 0; t < 4; t++) {
-                        if (cells[i].refs[t] == 255) {
-                            break;
-                        }
+                        uint8 refsCount = 0;
+                        for (uint256 t = 0; t < 4; t++) {
+                            if (cells[i].refs[t] == 255) {
+                                break;
+                            }
                             refsCount++;
-                    }
-                    uint32 new_level_mask = applyLevelMask(level_i, cells[i].level_mask);
-                    // uint8 new_d1 = 
-                    uint8 d1 = uint8(refsCount + (cells[i].special ? 8 : 0) + new_level_mask * 32);
-                    _hash = cell_slice[1:cell_info.refs_offset];
-                    _hash = bytes.concat(bytes1(d1), _hash);
+                        }
+                        uint32 new_level_mask = applyLevelMask(
+                            level_i,
+                            cells[i].level_mask
+                        );
+                        // uint8 new_d1 =
+                        uint8 d1 = uint8(
+                            refsCount +
+                                (cells[i].special ? 8 : 0) +
+                                new_level_mask *
+                                32
+                        );
+                        _hash = cell_slice[1:cell_info.refs_offset];
+                        _hash = bytes.concat(bytes1(d1), _hash);
                     }
                     // console.log("hash_i == hash_i_offset");
                     // console.logBytes(_hash);
@@ -607,7 +615,7 @@ contract TreeOfCellsParser is BitReader {
         if (cells[cellIdx].cellType == PrunnedBranchCell) {
             uint8 this_hash_i = getHashesCount(cells[cellIdx].level_mask) - 1;
             if (hash_i != this_hash_i) {
-                console.log("prunned branch keys");
+                // console.log("prunned branch keys");
                 uint256 cursor = 16 + uint256(hash_i) * 2 * 8;
                 cells[cellIdx].cursor += cursor;
                 uint256 hash_num = readUint(data, cells, cellIdx, 256);

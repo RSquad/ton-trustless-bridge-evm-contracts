@@ -13,12 +13,7 @@ contract TransactionParser is BitReader {
     ) public view returns (TransactionHeader memory transaction) {
         transaction.checkCode = readUint8(data, cells, rootIdx, 4);
         // addressHash
-        transaction.addressHash = readBytes32ByteSize(
-            data,
-            cells,
-            rootIdx,
-            32
-        );
+        transaction.addressHash = readBytes32ByteSize(data, cells, rootIdx, 32);
         // lt
         transaction.lt = readUint64(data, cells, rootIdx, 64);
         transaction.prevTransHash = readBytes32ByteSize(
@@ -27,19 +22,9 @@ contract TransactionParser is BitReader {
             rootIdx,
             32
         );
-        transaction.prevTransLt = readUint64(
-            data,
-            cells,
-            rootIdx,
-            64
-        );
+        transaction.prevTransLt = readUint64(data, cells, rootIdx, 64);
         transaction.time = readUint32(data, cells, rootIdx, 32);
-        transaction.OutMesagesCount = readUint32(
-            data,
-            cells,
-            rootIdx,
-            15
-        );
+        transaction.OutMesagesCount = readUint32(data, cells, rootIdx, 15);
 
         transaction.oldStatus = readUint8(data, cells, rootIdx, 2);
         transaction.newStatus = readUint8(data, cells, rootIdx, 2);
@@ -87,7 +72,7 @@ contract TransactionParser is BitReader {
         messagesHeader.hasOutMessages = readBool(data, cells, messagesIdx);
         if (messagesHeader.hasInMessage) {
             messagesHeader.inMessage = parseMessage(
-                data, 
+                data,
                 cells,
                 readCell(cells, messagesIdx)
             );
@@ -104,7 +89,7 @@ contract TransactionParser is BitReader {
             for (uint256 i = 0; i < 5; i++) {
                 if (cellIdxs[i] != 255) {
                     messagesHeader.outMessages[j] = parseMessage(
-                        data, 
+                        data,
                         cells,
                         readCell(cells, cellIdxs[i])
                     );
@@ -124,7 +109,9 @@ contract TransactionParser is BitReader {
         for (uint256 i = 0; i < 5; i++) {
             if (outMessages[i].info.dest.hash == bytes32(uint256(0xc0470ccf))) {
                 uint256 idx = outMessages[i].bodyIdx;
-                data.eth_address = address(uint160(readUint(bocData, cells, idx, 160)));
+                data.eth_address = address(
+                    uint160(readUint(bocData, cells, idx, 160))
+                );
                 data.amount = readUint64(bocData, cells, idx, 64);
             }
         }
@@ -134,11 +121,9 @@ contract TransactionParser is BitReader {
 
     function parseMessage(
         bytes calldata data,
-        CellData[100] memory cells, uint256 messagesIdx)
-        public
-        view
-        returns (Message memory message)
-    {
+        CellData[100] memory cells,
+        uint256 messagesIdx
+    ) public view returns (Message memory message) {
         message.info = parseCommonMsgInfo(data, cells, messagesIdx);
         bool hasInit = readBool(data, cells, messagesIdx);
         if (hasInit) {
@@ -159,11 +144,9 @@ contract TransactionParser is BitReader {
 
     function parseCommonMsgInfo(
         bytes calldata data,
-        CellData[100] memory cells, uint256 messagesIdx)
-        public
-        view
-        returns (RawCommonMessageInfo memory msgInfo)
-    {
+        CellData[100] memory cells,
+        uint256 messagesIdx
+    ) public view returns (RawCommonMessageInfo memory msgInfo) {
         if (!readBool(data, cells, messagesIdx)) {
             // internal
             // console.log("internal");
@@ -198,11 +181,11 @@ contract TransactionParser is BitReader {
         return msgInfo;
     }
 
-    function readAddress(bytes calldata data,CellData[100] memory cells, uint256 messagesIdx)
-        public
-        pure
-        returns (TonAddress memory addr)
-    {
+    function readAddress(
+        bytes calldata data,
+        CellData[100] memory cells,
+        uint256 messagesIdx
+    ) public pure returns (TonAddress memory addr) {
         uint8 Type = readUint8(data, cells, messagesIdx, 2);
 
         if (Type == 0) {
@@ -226,4 +209,18 @@ contract TransactionParser is BitReader {
         return addr;
     }
 
+    function deserializeMsgDate(
+        bytes calldata boc,
+        CellData[100] memory cells,
+        uint256 rootIdx
+    ) public view returns (TestData memory data) {
+        parseTransactionHeader(boc, cells, rootIdx);
+        MessagesHeader memory messages = parseMessagesHeader(
+            boc,
+            cells,
+            readCell(cells, rootIdx)
+        );
+
+        return getDataFromMessages(boc, cells, messages.outMessages);
+    }
 }

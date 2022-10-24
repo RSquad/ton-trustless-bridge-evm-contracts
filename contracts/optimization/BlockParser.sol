@@ -68,6 +68,8 @@ contract BlockParser is BitReader, Ownable {
 
         // totalWeight = candidatesTotalWeight;
         // candidatesTotalWeight = 0;
+        console.log("new verified block added:");
+        console.logBytes32(root_hash);
         verifiedBlocks[root_hash] = VerifiedBlockInfo(true, 0, 0, 0);
     }
 
@@ -106,7 +108,7 @@ contract BlockParser is BitReader, Ownable {
                     bytes.concat(bytes4(0x706e0bc5), root_hash, file_hash)
                 )
             ) {
-                console.log("Success Ed25519!!!");
+                console.log("Success Ed25519");
                 validatorSet[validatodIdx].verified = root_hash;
             }
         }
@@ -238,7 +240,7 @@ contract BlockParser is BitReader, Ownable {
         }
         // console.log("worked?", cellIdx, prefixLength, n);
         if (n - prefixLength == 0) {
-            console.log("warning, we have validator in base pruned boc");
+            // console.log("warning, we have validator in base pruned boc");
             // end
             for (uint256 i = 0; i < 32; i++) {
                 if (cellIdxs[i] == 255) {
@@ -251,7 +253,7 @@ contract BlockParser is BitReader, Ownable {
         } else {
             uint256 leftIdx = readCell(cells, cellIdx);
             uint256 rightIdx = readCell(cells, cellIdx);
-            console.log("left/right idxs", cellIdx, leftIdx, rightIdx);
+            // console.log("left/right idxs", cellIdx, leftIdx, rightIdx);
             // NOTE: Left and right branches are implicitly contain prefixes '0' and '1'
             if (leftIdx != 255 && !cells[leftIdx].special) {
                 doParse2(
@@ -609,6 +611,10 @@ contract BlockParser is BitReader, Ownable {
             ) -
             1;
 
+        require(
+            isVerifiedBlock(proofTreeOfCells[proofRootIdx]._hash[0]),
+            "block is not verified"
+        );
         uint32 tag = readUint32(proofBoc, proofTreeOfCells, proofRootIdx, 32);
         // console.log("GlobalId:", tag);
         // blockInfo^ (pruned)
@@ -619,6 +625,7 @@ contract BlockParser is BitReader, Ownable {
         // state_update^ (pruned)
         readCell(proofTreeOfCells, proofRootIdx);
         uint256 extraIdx = readCell(proofTreeOfCells, proofRootIdx);
+
         return
             parse_block_extra(
                 proofBoc,
@@ -719,13 +726,14 @@ contract BlockParser is BitReader, Ownable {
         readCell(cells, cellIdx);
         // account_blocks^
         uint256 account_blocksIdx = readCell(cells, readCell(cells, cellIdx));
-
+        // console.log("PARSE WORKS 1");
         uint256[32] memory accountIdxs = parseDict(
             proofBoc,
             cells,
             account_blocksIdx,
             256
         );
+        // console.log("PARSE WORKS 2");
         for (uint256 i = 0; i < 32; i++) {
             if (accountIdxs[i] == 255) {
                 break;
@@ -873,6 +881,8 @@ contract BlockParser is BitReader, Ownable {
                     //     256
                     // );
 
+                    console.log("new verified block added:");
+                    console.logBytes32(root_hash);
                     verifiedBlocks[root_hash] = new_block_info;
 
                     console.log("seq_no", new_block_info.seq_no);
