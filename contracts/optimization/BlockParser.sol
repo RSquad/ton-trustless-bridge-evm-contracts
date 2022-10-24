@@ -60,7 +60,7 @@ contract BlockParser is BitReader, Ownable {
                 currentWeight += validatorSet[j].weight;
             }
         }
-        console.log("weights:", currentWeight, totalWeight);
+        // console.log("weights:", currentWeight, totalWeight);
         require(currentWeight * 3 > totalWeight * 2, "not enought votes");
 
         // validatorSet = candidatesForValidatorSet;
@@ -68,8 +68,8 @@ contract BlockParser is BitReader, Ownable {
 
         // totalWeight = candidatesTotalWeight;
         // candidatesTotalWeight = 0;
-        console.log("new verified block added:");
-        console.logBytes32(root_hash);
+        // console.log("new verified block added:");
+        // console.logBytes32(root_hash);
         verifiedBlocks[root_hash] = VerifiedBlockInfo(true, 0, 0, 0);
     }
 
@@ -99,7 +99,7 @@ contract BlockParser is BitReader, Ownable {
             }
 
             require(validatodIdx != validatorSet.length, "wrong node_id");
-            console.log("start Ed25519");
+            // console.log("start Ed25519");
             if (
                 Ed25519.verify(
                     validatorSet[validatodIdx].pubkey,
@@ -108,7 +108,7 @@ contract BlockParser is BitReader, Ownable {
                     bytes.concat(bytes4(0x706e0bc5), root_hash, file_hash)
                 )
             ) {
-                console.log("Success Ed25519");
+                // console.log("Success Ed25519");
                 validatorSet[validatodIdx].verified = root_hash;
             }
         }
@@ -142,7 +142,7 @@ contract BlockParser is BitReader, Ownable {
                     currentWeight += validatorSet[j].weight;
                 }
             }
-            console.log("weights:", currentWeight, totalWeight);
+            // console.log("weights:", currentWeight, totalWeight);
             require(currentWeight * 3 > totalWeight * 2, "not enought votes");
         }
 
@@ -849,9 +849,9 @@ contract BlockParser is BitReader, Ownable {
                 uint256 leafIdx = binTreeCells[j]; // toc[txIdxs[i]].refs[0];
                 binTreeCells[j] = 0;
 
-                console.log("test for leaf Idx:", leafIdx);
+                // console.log("test for leaf Idx:", leafIdx);
                 if (readBit(boc, toc, leafIdx) == 0) {
-                    console.log("leafIdx:", leafIdx);
+                    // console.log("leafIdx:", leafIdx);
                     uint8 dType = readUint8(boc, toc, leafIdx, 4);
 
                     require(dType == 0xa || dType == 0xb, "not a ShardDescr");
@@ -881,16 +881,16 @@ contract BlockParser is BitReader, Ownable {
                     //     256
                     // );
 
-                    console.log("new verified block added:");
-                    console.logBytes32(root_hash);
+                    // console.log("new verified block added:");
+                    // console.logBytes32(root_hash);
                     verifiedBlocks[root_hash] = new_block_info;
 
-                    console.log("seq_no", new_block_info.seq_no);
+                    // console.log("seq_no", new_block_info.seq_no);
                     // console.log("req_mc_seqno", req_mc_seqno);
-                    console.log("start_lt", new_block_info.start_lt);
-                    console.log("end_lt", new_block_info.end_lt);
-                    console.log("root_hash:");
-                    console.logBytes32(root_hash);
+                    // console.log("start_lt", new_block_info.start_lt);
+                    // console.log("end_lt", new_block_info.end_lt);
+                    // console.log("root_hash:");
+                    // console.logBytes32(root_hash);
                     // console.log("file_hash:");
                     // console.logBytes32(file_hash);
                 } else {
