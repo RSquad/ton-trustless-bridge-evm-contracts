@@ -236,6 +236,26 @@ readUintLeq, check_block_info
 
 Методы для корректного чтения start_lt и end_lt блока, а так же проверки того, что lt транзакции находится в промежутке времени работы блока (transaction.lt >= start_lt || transaction.lt <= end_lt).
 
+**4.10 setRootHashForValidating(root_hash)**
+
+Обновляет текущий root_hash сохраненный в контракте для проверки подписями.
+
+**4.11 addCurrentBlockToVerifiedSet()**
+
+Метод добавляет текущий root_hash блока в список проверенных, если он подписан достаточным (по весу) количеством валидаторов.
+
+**4.12 isVerifiedBlock(root_hash)**
+
+Метод возвращает true, если блок с данным root_hash был проверен в контракте.
+
+**4.13 parseShardProofPath(boc, rootIdx, toc)**
+
+Принимает пруф с списком шардовых root_hash'ей и добавляет их в список проверенных блоков, если root_hash основного блока (от которого идет пруф) является провалидированным.
+
+**4.14 addPrevBlock(boc, rootIdx, toc)**
+
+Принимает пруф от блока к предыдущему блоку и добавляет предыдущий блок в список провалидированных, если "текущий" блок уже является провалидированным.
+
 ## Примечания по контрактам
 
 В документации не указаны методы следующих контрактов:
@@ -249,7 +269,11 @@ readUintLeq, check_block_info
 
 1) Initial state - после деплоя контрактов админ (овнер контрактов) инициилизирует начальный список валидаторов.
 2) После первого шага в контракт подаются новые key block'и и, если в них изменился список валидаторов, производится алгоритм обновления списка валидаторов.
-3) **Todo** Так же в контракт подаются и обычные блоки для проверки того, находятся ли они в блокчейне, если да, то контракт сохраняет root_hash этого блока с отметкой того, что он валиден.
+3) Так же в контракт подаются и обычные блоки для проверки того, находятся ли они в блокчейне, если да, то контракт сохраняет root_hash этого блока с отметкой того, что он валиден.
+Возможные методы проверки:
+- с помощью подписей валидаторов
+- с помощью следующего блока (если блок "2" уже считается провалидированным в контракте, то через пруф к предыдущему блоку "1" мы так же можем добавить блок "1" в список провалидированных)
+- проверка блоков из шардов
 4) При подаче в контракт транзакции, мы получаем данные из сообщения этой транзакции (с eth_address и amount) и проверяем, валидна ли транзакций. Транзакция является валидной, если:
 - hash ToC'а транзакции (transaction_hash) содержится в ToC'е некоторого блока
 - root_hash блока находится в списке проверенных блоков контракта (т.е. блок находится в блокчейне)
@@ -320,3 +344,55 @@ verifyValidators(fileHash, {node_id, r, s}[20]);
 **2.2.2 Чтение и сохранение нового списка валидаторов**
 
 Алгоритм тот же, что и в 2.1
+
+## 3. Валидация блока
+
+### 3.1 Проверка блока с помощью подписей
+
+Добавляем root_hash блока, который мы хотим проверить в контракт и затем проверяем подписи
+
+```
+await blockParser.setRootHashForValidating(
+    "0x41d7f626340d495783b9a199c17dcb9d8ec4f72cf1c4760d664f14279d67f926"
+);
+
+// verify signatures
+for (let i = 0; i < signatures.length; i += 20) {
+    const subArr = signatures.slice(i, i + 20);
+    while (subArr.length < 20) {
+    subArr.push(signatures[0]);
+    }
+    await blockParser.verifyValidators(
+    `0x${"577d603b0072515d59021f24e26f9c4ad577e7dd30b5e852456e507e500f58d7"}`,
+    subArr.map((c) => ({
+        node_id: `0x${c.node_id}`,
+        r: `0x${c.r}`,
+        s: `0x${c.s}`,
+    })) as any[20]
+    );
+}
+
+await blockParser.addCurrentBlockToVerifiedSet();
+```
+
+### 3.2 Проверка блоков из шарды
+
+```
+boc = Buffer.from(proof, "base64");
+const header = await treeOfCellsParser.parseSerializedHeader(boc);
+toc = await treeOfCellsParser.get_tree_of_cells(boc, header);
+
+await blockParser.parseShardProofPath(boc, header.rootIdx, toc);
+```
+
+где proof - boc пруфа из апи для шарды
+
+### 3.3 Проверка предыдущего блока
+
+```
+boc = Buffer.from(proof2, "hex");
+bocHeader = await treeOfCellsParser.parseSerializedHeader(boc);
+toc = await treeOfCellsParser.get_tree_of_cells(boc, bocHeader);
+
+await blockParser.addPrevBlock(boc, bocHeader.rootIdx, toc);
+```
