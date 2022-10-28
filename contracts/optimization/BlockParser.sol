@@ -8,6 +8,7 @@ import "../types/BlockTypes.sol";
 import "hardhat/console.sol";
 import "../libraries/Ed25519.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./IBlockParser.sol";
 
 struct Vdata {
     bytes32 node_id;
@@ -25,9 +26,10 @@ struct VerifiedBlockInfo {
     uint32 seq_no;
     uint64 start_lt;
     uint64 end_lt;
+    bytes32 new_hash;
 }
 
-contract BlockParser is BitReader, Ownable {
+contract BlockParser is BitReader, Ownable, IBlockParser {
     ValidatorDescription[100] validatorSet;
     uint64 totalWeight = 0;
 
@@ -47,7 +49,7 @@ contract BlockParser is BitReader, Ownable {
         onlyOwner
     {
         require(!isVerifiedBlock(root_hash), "block already verified");
-        verifiedBlocks[root_hash] = VerifiedBlockInfo(true, seq_no, 0, 0);
+        verifiedBlocks[root_hash] = VerifiedBlockInfo(true, seq_no, 0, 0, 0);
     }
 
     function addCurrentBlockToVerifiedSet() public {
@@ -70,7 +72,17 @@ contract BlockParser is BitReader, Ownable {
         // candidatesTotalWeight = 0;
         // console.log("new verified block added:");
         // console.logBytes32(root_hash);
-        verifiedBlocks[root_hash] = VerifiedBlockInfo(true, 0, 0, 0);
+
+        
+        // require(toc[rootIdx]._hash[0] == root_hash, "wrong toc");
+
+
+        // uint256 cellIdx = toc[rootIdx].refs[2];
+        // console.log("test", readUint8(boc, toc, cellIdx, 8));
+        // bytes32 old_hash = readBytes32BitSize(boc, toc, cellIdx, 256);
+        // bytes32 new_hash = readBytes32BitSize(boc, toc, cellIdx, 256);
+
+        verifiedBlocks[root_hash] = VerifiedBlockInfo(true, 0, 0, 0, 0);
     }
 
     function isVerifiedBlock(bytes32 root_hash) public view returns (bool) {
@@ -151,6 +163,16 @@ contract BlockParser is BitReader, Ownable {
 
         totalWeight = candidatesTotalWeight;
         candidatesTotalWeight = 0;
+
+        // require(toc[rootIdx]._hash[0] == root_hash, "wrong toc");
+// 
+
+        // uint256 cellIdx = toc[rootIdx].refs[2];
+        // console.log("test", readUint8(boc, toc, cellIdx, 8));
+        // bytes32 old_hash = readBytes32BitSize(boc, toc, cellIdx, 256);
+        // bytes32 new_hash = readBytes32BitSize(boc, toc, cellIdx, 256);
+
+        verifiedBlocks[root_hash] = VerifiedBlockInfo(true, 0, 0, 0, 0);
     }
 
     function computeNodeId(bytes32 publicKey) public pure returns (bytes32) {
@@ -584,17 +606,17 @@ contract BlockParser is BitReader, Ownable {
         }
 
         // if it is last validators boc, try to set validators;
-        bool isEmpty = true;
-        for (uint256 i = 0; i < 10; i++) {
-            if (prunedCells[i].prefixLength != 0) {
-                isEmpty = false;
-                break;
-            }
-        }
-        console.log("IS EMPTY:", isEmpty);
-        if (isEmpty) {
-            setValidatorSet();
-        }
+        // bool isEmpty = true;
+        // for (uint256 i = 0; i < 10; i++) {
+        //     if (prunedCells[i].prefixLength != 0) {
+        //         isEmpty = false;
+        //         break;
+        //     }
+        // }
+        // console.log("IS EMPTY:", isEmpty);
+        // if (isEmpty) {
+        //     setValidatorSet();
+        // }
     }
 
     function parse_block(
@@ -860,6 +882,7 @@ contract BlockParser is BitReader, Ownable {
                         true,
                         readUint32(boc, toc, leafIdx, 32),
                         0,
+                        0,
                         0
                     );
 
@@ -941,7 +964,8 @@ contract BlockParser is BitReader, Ownable {
                     true,
                     seq_no,
                     0,
-                    end_lt
+                    end_lt,
+                    0
                 );
                 console.log("aded block with root_hash");
                 console.logBytes32(root_hash);
@@ -973,7 +997,8 @@ contract BlockParser is BitReader, Ownable {
                         true,
                         seq_no,
                         0,
-                        end_lt
+                        end_lt,
+                        0
                     );
                     console.log("aded block with root_hash");
                     console.logBytes32(root_hash);
@@ -1003,7 +1028,8 @@ contract BlockParser is BitReader, Ownable {
                         true,
                         seq_no,
                         0,
-                        end_lt
+                        end_lt,
+                        0
                     );
                     console.log("aded block with root_hash");
                     console.logBytes32(root_hash);
@@ -1012,5 +1038,82 @@ contract BlockParser is BitReader, Ownable {
             // data.prev1 = loadRefIfExist(cell, t, loadExtBlkRef);
             // data.prev2 = loadRefIfExist(cell, t, loadExtBlkRef);
         }
+    }
+
+    function readMasterProof(
+        bytes calldata boc,
+        uint256 rootIdx,
+        CellData[100] memory toc
+    ) public {
+        require(
+            isVerifiedBlock(toc[rootIdx]._hash[0]),
+            "Block is not verified"
+        );
+
+        // extra
+        uint256 cellIdx = toc[rootIdx].refs[2];
+        // console.log("test", readUint8(boc, toc, cellIdx, 8));
+        bytes32 old_hash = readBytes32BitSize(boc, toc, cellIdx, 256);
+        bytes32 new_hash = readBytes32BitSize(boc, toc, cellIdx, 256);
+
+        verifiedBlocks[toc[rootIdx]._hash[0]].new_hash = new_hash;
+    }
+
+    function readStateProof(
+        bytes calldata boc,
+        uint256 rootIdx,
+        CellData[100] memory toc,
+        bytes32 root_hash
+    ) public {
+
+
+
+        require(
+            toc[rootIdx]._hash[0] == verifiedBlocks[root_hash].new_hash,
+            "Block is not verified"
+        );
+
+        // console.logBytes32(toc[rootIdx]._hash[0]);
+
+        require(readUint32(boc, toc, rootIdx, 32) == 0x9023afe2, "not a ShardStateUnsplit");
+
+        // custom
+        uint cellIdx = toc[rootIdx].refs[3];
+        require(readUint16(boc, toc, cellIdx, 16) == 0xcc26, "not a McStateExtra");
+        
+        // prev_blocks
+        cellIdx = toc[cellIdx].refs[2];
+        
+
+        console.log("start cell for parse:", cellIdx);
+        uint256[32] memory txIdxs = parseDict(
+            boc,
+            toc,
+            cellIdx,
+            30
+        );
+
+        console.log("parse ended");
+
+        for (uint i = 0; i < 32; i++) {
+            if (txIdxs[i] == 255) {
+                break;
+            }
+            console.log("found:", txIdxs[i], toc[txIdxs[i]].cursor);
+            toc[txIdxs[i]].cursor += 66;
+            
+            uint64 end_lt = readUint64(boc, toc, txIdxs[i], 64);
+            uint32 seq_no = readUint32(boc, toc, txIdxs[i], 32);
+            bytes32 blk_root_hash = readBytes32BitSize(boc, toc, txIdxs[i], 256);
+            bytes32 blk_file_hash = readBytes32BitSize(boc, toc, txIdxs[i], 256);
+
+            verifiedBlocks[blk_root_hash] = VerifiedBlockInfo(true, seq_no, 0, end_lt, blk_file_hash);
+            console.log("blk root hash:");
+            console.logBytes32(blk_root_hash);
+        }
+
+        // require(state_hash == verifiedBlocks[toc[rootIdx]._hash[0]].new_hash);
+
+        // state_hash -> -> addToVerifiedBlocks[cell (list) .blk_ref]
     }
 }

@@ -6,12 +6,13 @@ import "../types/CellData.sol";
 import "../types/CellSerializationInfo.sol";
 import "../types/TransactionTypes.sol";
 import "./BitReader.sol";
+import "./ITreeOfCellsParser.sol";
 
 import "hardhat/console.sol";
 
 // TODO: check has_index == true
 
-contract TreeOfCellsParser is BitReader {
+contract TreeOfCellsParser is BitReader, ITreeOfCellsParser {
     bytes4 public constant BOC_IDX = 0x68ff65f3;
     bytes4 public constant BOC_IDX_CRC32C = 0xacc3a728;
     bytes4 public constant BOC_GENERIC = 0xb5ee9c72;
@@ -195,7 +196,7 @@ contract TreeOfCellsParser is BitReader {
         view
         returns (uint256[100] memory custom_index)
     {
-        require(!info.has_index, "has index logic has not realised");
+        // require(!info.has_index, "has index logic has not realised");
 
         bytes calldata cells_slice_for_indexes = boc[info.data_offset:info
             .data_offset + info.data_size];

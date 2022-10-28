@@ -221,7 +221,7 @@ contract BitReader {
         if (!readBool(data, cells, cellIdx)) {
             // Short label detected
             prefixLength = readUnaryLength(data, cells, cellIdx);
-            // console.log("Short label detected", cellIdx, n, prefixLength);
+            console.log("Short label detected", cellIdx, n, prefixLength);
 
             for (uint256 i = 0; i < prefixLength; i++) {
                 pp = (pp << 1) + readBit(data, cells, cellIdx);
@@ -231,7 +231,7 @@ contract BitReader {
             if (!readBool(data, cells, cellIdx)) {
                 // long label detected
                 prefixLength = readUint64(data, cells, cellIdx, uint8(log2Ceil(n)));
-                // console.log("Long label detected", cellIdx, n, prefixLength);
+                console.log("Long label detected", cellIdx, n, prefixLength);
                 for (uint256 i = 0; i < prefixLength; i++) {
                     pp = (pp << 1) + readBit(data, cells, cellIdx);
                 }
@@ -239,13 +239,13 @@ contract BitReader {
                 // Same label detected
                 uint256 bit = readBit(data, cells, cellIdx);
                 prefixLength = readUint64(data, cells, cellIdx, uint8(log2Ceil(n)));
-                // console.log("Same label detected", cellIdx, n, prefixLength);
+                console.log("Same label detected", cellIdx, n, prefixLength);
                 for (uint256 i = 0; i < prefixLength; i++) {
                     pp = (pp << 1) + bit;
                 }
             }
         }
-        // console.log("worked?", cellIdx, prefixLength, n);
+        console.log("worked?", cellIdx, prefixLength, n);
         if (n - prefixLength == 0) {
             // end
             for (uint256 i = 0; i < 32; i++) {

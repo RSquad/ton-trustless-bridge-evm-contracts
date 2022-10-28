@@ -4,8 +4,9 @@ pragma solidity >=0.8.5 <0.9.0;
 import "../types/TransactionTypes.sol";
 import "./BitReader.sol";
 import "hardhat/console.sol";
+import "./ITransactionParser.sol";
 
-contract TransactionParser is BitReader {
+contract TransactionParser is BitReader, ITransactionParser {
     function parseTransactionHeader(
         bytes calldata data,
         CellData[100] memory cells,
