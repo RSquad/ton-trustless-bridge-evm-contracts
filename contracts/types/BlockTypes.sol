@@ -7,5 +7,24 @@ struct ValidatorDescription {
     bytes32 adnl_addr;
     bytes32 pubkey;
     bytes32 node_id;
-    bytes32 verified;
+    // mapping(bytes32 => bool) verified;
+}
+
+struct Vdata {
+    bytes32 node_id;
+    bytes32 r;
+    bytes32 s;
+}
+
+struct CachedCell {
+    uint256 prefixLength;
+    bytes32 hash;
+}
+
+struct VerifiedBlockInfo {
+    bool verified;
+    uint32 seq_no;
+    uint64 start_lt;
+    uint64 end_lt;
+    bytes32 new_hash;
 }

@@ -2,6 +2,8 @@
 pragma solidity >=0.8.5 <0.9.0;
 
 struct CellSerializationInfo {
+    uint8 d1;
+    uint8 d2;
     bool special;
     uint32 level_mask;
     bool with_hashes;

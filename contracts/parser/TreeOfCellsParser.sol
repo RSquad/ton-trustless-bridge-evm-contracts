@@ -5,12 +5,21 @@ import "../types/BagOfCellsInfo.sol";
 import "../types/CellData.sol";
 import "../types/CellSerializationInfo.sol";
 import "../types/TransactionTypes.sol";
-import "./BitReader.sol";
-import "./ITreeOfCellsParser.sol";
+import "../parser/BitReader.sol";
 
 import "hardhat/console.sol";
 
-// TODO: check has_index == true
+interface ITreeOfCellsParser {
+    function parseSerializedHeader(bytes calldata boc)
+        external
+        pure
+        returns (BagOfCellsInfo memory header);
+
+    function get_tree_of_cells(bytes calldata boc, BagOfCellsInfo memory info)
+        external
+        view
+        returns (CellData[100] memory cells);
+}
 
 contract TreeOfCellsParser is BitReader, ITreeOfCellsParser {
     bytes4 public constant BOC_IDX = 0x68ff65f3;
@@ -224,10 +233,12 @@ contract TreeOfCellsParser is BitReader, ITreeOfCellsParser {
         require(!(data.length < 2), "Not enough bytes");
         uint8 d1 = uint8(data[0]);
         uint8 d2 = uint8(data[1]);
-
+        cellInfo.d1 = d1;
+        cellInfo.d2 = d2;
         cellInfo.refs_cnt = d1 & 7;
         cellInfo.level_mask = d1 >> 5;
         cellInfo.special = (d1 & 8) != 0;
+        console.log("fucking prunned cell", d1, d2, cellInfo.level_mask);
 
         cellInfo.with_hashes = (d1 & 16) != 0;
 
@@ -360,6 +371,7 @@ contract TreeOfCellsParser is BitReader, ITreeOfCellsParser {
                 cells_slice,
                 custom_index
             );
+            console.log("idx", i);
             CellSerializationInfo
                 memory cell_info = init_cell_serialization_info(
                     cell_slice,
@@ -466,6 +478,11 @@ contract TreeOfCellsParser is BitReader, ITreeOfCellsParser {
         uint256 i,
         bytes calldata cell_slice
     ) public view {
+        if (cells[i].cellType == PrunnedBranchCell) {
+            cells[i].level_mask = uint8(cell_slice[3]);
+            cell_info.level_mask = uint8(cell_slice[3]);
+        }
+
         uint8 hash_i_offset = getHashesCount(cell_info.level_mask) -
             (
                 cells[i].cellType == PrunnedBranchCell
@@ -473,7 +490,12 @@ contract TreeOfCellsParser is BitReader, ITreeOfCellsParser {
                     : getHashesCount(cell_info.level_mask)
             );
         uint8 hash_i = 0;
+
+        console.log("hash i offset", hash_i_offset);
+
+
         uint8 level = getLevel(cell_info.level_mask);
+
         for (uint8 level_i = 0; level_i <= level; level_i++) {
             if (!isLevelSignificant(level_i, cell_info.level_mask)) {
                 continue;
@@ -483,6 +505,7 @@ contract TreeOfCellsParser is BitReader, ITreeOfCellsParser {
                 hash_i++;
                 continue;
             }
+            console.log("start loop:", level_i);
 
             bytes memory _hash;
             {
@@ -501,6 +524,7 @@ contract TreeOfCellsParser is BitReader, ITreeOfCellsParser {
                             }
                             refsCount++;
                         }
+                        console.log("max level:", level);
                         uint32 new_level_mask = applyLevelMask(
                             level_i,
                             cells[i].level_mask
@@ -512,11 +536,19 @@ contract TreeOfCellsParser is BitReader, ITreeOfCellsParser {
                                 new_level_mask *
                                 32
                         );
+                        console.logBytes(cell_slice);
+                        console.log(
+                            "level mask",
+                            new_level_mask,
+                            level_i,
+                            cells[i].level_mask
+                        );
+                        console.logBytes1(bytes1(d1));
                         _hash = cell_slice[1:cell_info.refs_offset];
                         _hash = bytes.concat(bytes1(d1), _hash);
                     }
-                    // console.log("hash_i == hash_i_offset");
-                    // console.logBytes(_hash);
+                    console.log("hash_i == hash_i_offset");
+                    console.logBytes(_hash);
                 } else {
                     require(
                         !(level_i == 0 ||
@@ -527,8 +559,8 @@ contract TreeOfCellsParser is BitReader, ITreeOfCellsParser {
                         _hash,
                         cells[i]._hash[hash_i - hash_i_offset - 1]
                     );
-                    // console.log("hash_i != hash_i_offset");
-                    // console.logBytes(_hash);
+                    console.log("hash_i != hash_i_offset");
+                    console.logBytes(_hash);
                 }
             }
 
@@ -573,28 +605,28 @@ contract TreeOfCellsParser is BitReader, ITreeOfCellsParser {
                 }
 
                 cells[i].depth[hash_i - hash_i_offset]++;
-                // console.log("Repr of cells:", i);
-                // console.logBytes(_hash);
+                console.log("Repr of cells:", i);
+                console.logBytes(_hash);
                 for (j = 0; j < 4; j++) {
                     if (cells[i].refs[j] == 255) {
                         break;
                     }
-                    // console.log("LEVEL I:", level_i);
+                    console.log("LEVEL I:", level_i);
                     _hash = bytes.concat(
                         _hash,
                         getHash(data, level_i, cells, cells[i].refs[j])
                     );
                 }
-                // console.log("hash for cell with refs", i);
-                // console.logBytes(_hash);
+                console.log("hash for cell with refs", i);
+                console.logBytes(_hash);
                 cells[i]._hash[hash_i - hash_i_offset] = sha256(_hash);
-                // console.logBytes32(cells[i]._hash[hash_i - hash_i_offset]);
+                console.logBytes32(cells[i]._hash[hash_i - hash_i_offset]);
             } else {
-                // console.log("WORING HARD WITHOUT REFS");
-                // console.log("hash for cell without refs", i);
-                // console.logBytes(_hash);
+                console.log("WORING HARD WITHOUT REFS");
+                console.log("hash for cell without refs", i);
+                console.logBytes(_hash);
                 cells[i]._hash[hash_i - hash_i_offset] = sha256(_hash);
-                // console.logBytes32(cells[i]._hash[hash_i - hash_i_offset]);
+                console.logBytes32(cells[i]._hash[hash_i - hash_i_offset]);
             }
 
             hash_i++;

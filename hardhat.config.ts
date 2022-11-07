@@ -47,7 +47,7 @@ const config: HardhatUserConfig = {
       // gasPrice: 470000000000,
       // blockGasLimit: 9990000000000,
       // chainId: 43112,
-      allowUnlimitedContractSize: true,
+      // allowUnlimitedContractSize: true,
     },
     ropsten: {
       url: process.env.ROPSTEN_URL || "",
