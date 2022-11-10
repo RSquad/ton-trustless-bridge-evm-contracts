@@ -28,6 +28,10 @@ contract Validator is IValidator {
         shardValidator = IShardValidator(shardValidatorAddr);
     }
 
+    function isSignedByValidator(bytes32 node_id, bytes32 root_h) public view returns (bool) {
+        return signatureValidator.isSignedByValidator(node_id, root_h);
+    }    
+
     function isVerifiedBlock(bytes32 rootHash) public view returns (bool) {
         return verifiedBlocks[rootHash].verified;
     }
@@ -78,6 +82,7 @@ contract Validator is IValidator {
         );
     }
 
+    // fix ownership
     function setValidatorSet() public {
         bytes32 key_block_root_hash = signatureValidator.setValidatorSet();
         verifiedBlocks[key_block_root_hash] = VerifiedBlockInfo(
@@ -124,8 +129,8 @@ contract Validator is IValidator {
             }
 
             verifiedBlocks[root_hashes[i]] = blocks[i];
-            console.log("valid block added:");
-            console.logBytes32(root_hashes[i]);
+            
+            
         }
     }
 
@@ -156,9 +161,6 @@ contract Validator is IValidator {
         BagOfCellsInfo memory header = tocParser.parseSerializedHeader(boc);
         CellData[100] memory toc = tocParser.get_tree_of_cells(boc, header);
 
-        console.log("hell");
-        console.logBytes32(toc[header.rootIdx]._hash[0]);
-        console.logBytes32(toc[toc[header.rootIdx].refs[0]]._hash[0]);
         require(isVerifiedBlock(toc[header.rootIdx]._hash[0]), "Not verified");
         bytes32 new_hash = shardValidator.readMasterProof(
             boc,
@@ -172,9 +174,6 @@ contract Validator is IValidator {
     function readStateProof(bytes calldata boc, bytes32 rh) public {
         BagOfCellsInfo memory header = tocParser.parseSerializedHeader(boc);
         CellData[100] memory toc = tocParser.get_tree_of_cells(boc, header);
-
-        console.log("state proof");
-        console.logBytes32(toc[header.rootIdx]._hash[0]);
 
         require(
             toc[header.rootIdx]._hash[0] == verifiedBlocks[rh].new_hash,

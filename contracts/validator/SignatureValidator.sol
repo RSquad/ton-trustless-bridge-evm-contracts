@@ -43,6 +43,8 @@ interface ISignatureValidator {
         uint256 cellIdx,
         CellData[100] memory cells
     ) external;
+
+    function isSignedByValidator(bytes32 node_id, bytes32 root_h) external view returns (bool);
 }
 
 contract SignatureValidator is ISignatureValidator, Ownable {
@@ -61,6 +63,10 @@ contract SignatureValidator is ISignatureValidator, Ownable {
 
     constructor(address blockParserAddr) {
         blockParser = IBlockParser(blockParserAddr);
+    }
+
+    function isSignedByValidator(bytes32 node_id, bytes32 root_h) public view returns (bool) {
+        return signedBlocks[node_id][root_h];
     }
 
     function getPrunedCells() public view returns (CachedCell[10] memory) {
@@ -108,8 +114,8 @@ contract SignatureValidator is ISignatureValidator, Ownable {
     function verifyValidators(bytes32 root_h, bytes32 file_hash, Vdata[20] calldata vdata)
         public
     {
-        // console.logBytes32(file_hash);
-        // console.logBytes32(root_hash);
+        
+        
         bytes32 test_root_hash = root_hash == 0 ? root_h : root_hash;
 
         require(test_root_hash != 0 && file_hash != 0, "wrong root_hash or file_hash");
@@ -134,7 +140,7 @@ contract SignatureValidator is ISignatureValidator, Ownable {
                 )
                 
             ) {
-                // console.log("success");
+                
                 signedBlocks[validatorSet[validatodIdx].node_id][test_root_hash] = true;
             }
         }

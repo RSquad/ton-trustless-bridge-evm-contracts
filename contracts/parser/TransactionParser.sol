@@ -3,7 +3,6 @@ pragma solidity >=0.8.5 <0.9.0;
 
 import "../types/TransactionTypes.sol";
 import "../parser/BitReader.sol";
-import "hardhat/console.sol";
 
 interface ITransactionParser {
     function deserializeMsgDate(
@@ -169,7 +168,7 @@ contract TransactionParser is BitReader, ITransactionParser {
     ) public view returns (RawCommonMessageInfo memory msgInfo) {
         if (!readBool(data, cells, messagesIdx)) {
             // internal
-            // console.log("internal");
+            
             msgInfo.ihrDisabled = readBool(data, cells, messagesIdx);
             msgInfo.bounce = readBool(data, cells, messagesIdx);
             msgInfo.bounced = readBool(data, cells, messagesIdx);
@@ -184,7 +183,7 @@ contract TransactionParser is BitReader, ITransactionParser {
             msgInfo.createdAt = readUint32(data, cells, messagesIdx, 32);
         } else if (readBool(data, cells, messagesIdx)) {
             // Outgoing external
-            // console.log("Outgoing external");
+            
             msgInfo.src = readAddress(data, cells, messagesIdx);
             msgInfo.dest = readAddress(data, cells, messagesIdx);
 
@@ -192,7 +191,7 @@ contract TransactionParser is BitReader, ITransactionParser {
             msgInfo.createdAt = readUint32(data, cells, messagesIdx, 32);
         } else {
             // Incoming external
-            // console.log("Incoming external");
+            
             msgInfo.src = readAddress(data, cells, messagesIdx);
             msgInfo.dest = readAddress(data, cells, messagesIdx);
             msgInfo.importFee = readCoins(data, cells, messagesIdx);

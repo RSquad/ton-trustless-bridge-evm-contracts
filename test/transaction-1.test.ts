@@ -1,3 +1,4 @@
+/* eslint-disable node/no-missing-import */
 import { expect } from "chai";
 import { assert } from "console";
 import { BigNumber } from "ethers";
@@ -6,17 +7,24 @@ import {
   Adapter,
   Bridge,
   SignatureValidator,
+  Token,
   TreeOfCellsParser,
   Validator,
 } from "../typechain";
-import { data } from "./data/transaction-1";
+import {
+  data,
+  initialValidatorsBlockRootHash,
+  initialValidatorsList,
+  updateValidators,
+  updateValidatorsRootHash,
+} from "./data/transaction-1";
 
 describe("Tree of Cells parser tests 1", () => {
   let bridge: Bridge;
   let validator: Validator;
-  // let signatureValidator: SignatureValidator;
   let tocParser: TreeOfCellsParser;
   let adapter: Adapter;
+  let token: Token;
 
   before(async function () {
     const TreeOfCellsParser = await ethers.getContractFactory(
@@ -52,7 +60,7 @@ describe("Tree of Cells parser tests 1", () => {
     const transactionParser = await TransactionParser.deploy();
 
     const Token = await ethers.getContractFactory("Token");
-    const token = await Token.deploy();
+    token = await Token.deploy();
 
     const Bridge = await ethers.getContractFactory("Bridge");
     bridge = await Bridge.deploy(
@@ -69,73 +77,117 @@ describe("Tree of Cells parser tests 1", () => {
     adapter.transferOwnership(bridge.address);
   });
 
-  it("init validators", async () => {
+  it("Should throw an error when use wrong boc for parseCandidatesRootBlock", async () => {
+    const boc = Buffer.from(
+      data.find((el) => el.type === "state-hash")!.boc[0],
+      "hex"
+    );
+
+    try {
+      await validator.parseCandidatesRootBlock(boc);
+      assert(false);
+    } catch (error) {
+      assert(true);
+    }
+  });
+
+  it("Should add validators from boc to candidatesForValidators", async () => {
     const boc = Buffer.from(
       data.find((el) => el.type === "set-validators")!.boc[0],
       "hex"
     );
 
-    const header = await tocParser.parseSerializedHeader(boc);
-    const toc = await tocParser.get_tree_of_cells(boc, header);
-    console.log(
-      "root_hash:",
-      toc[header.rootIdx.toNumber()]._hash[0].toString()
+    await validator.parseCandidatesRootBlock(boc);
+
+    const validators = (await validator.getCandidatesForValidators()).filter(
+      (validator) => validator.cType !== 0
     );
 
-    // console.log(
-    //   toc
-    //     .filter((cell: any) => cell.cursor.gt(0))
-    //     .map((cell: any, id: any, a: any) => ({
-    //       id,
-    //       special: cell.special,
-    //       cursor: cell.cursor.toNumber(),
-    //       refs: cell.refs
-    //         .filter((ref: any) => !ref.eq(255))
-    //         .map((ref: any) => ref.toNumber()),
-    //       data: boc
-    //         .toString("hex")
-    //         // .slice(bocHeader.data_offset.toNumber())
-    //         .slice(
-    //           Math.floor(cell.cursor.div(4).toNumber()),
-    //           // Math.floor(cell.cursor.div(8).toNumber()) +
-    //           id === 0 ? 128 : Math.floor(a[id - 1].cursor.toNumber() / 4)
-    //         ),
-    //       bytesStart: cell.cursor.toNumber() % 8,
-    //       hash: cell._hash,
-    //       depth: cell.depth,
-    //       level_mask: cell.level_mask,
-    //       // distance:
-    //       //   id === 0
-    //       //     ? 128
-    //       //     : Math.floor(a[id - 1].cursor.toNumber() / 8) -
-    //       //       Math.floor(cell.cursor.div(8).toNumber()),
-    //     }))
-    // );
-
-    await validator.parseCandidatesRootBlock(boc);
-    // const validators = await validator.getCandidatesForValidators();
-    // console.log(validators.filter((validator) => validator.cType !== 0));
-    // TODO: fix ownership
-    await validator.setValidatorSet();
-    // const validators = await validator.getValidators();
-    // console.log(validators.filter((validator) => validator.cType !== 0));
+    validators.forEach((validator) => {
+      const item = initialValidatorsList.find(
+        (v) => v.node_id === validator.node_id
+      );
+      expect(item, "added some wrong candidate for validators").to.be.not.equal(
+        undefined
+      );
+      expect(validator.pubkey, "incorrect pubkey in contract").to.be.equal(
+        item?.pubkey
+      );
+    });
   });
 
-  it("update validators", async () => {
+  // TODO: onlyOwner test
+
+  it("Should set initial validators and its block's hash", async () => {
+    await validator.setValidatorSet();
+    let validators = (await validator.getValidators()).filter(
+      (validator) => validator.cType !== 0
+    );
+
+    expect(
+      await validator.isVerifiedBlock(initialValidatorsBlockRootHash),
+      "validators block should be valid after save validators"
+    ).to.be.equal(true);
+
+    validators.forEach((validator) => {
+      const item = initialValidatorsList.find(
+        (v) => v.node_id === validator.node_id
+      );
+      expect(item, "added some wrong candidate for validators").to.be.not.equal(
+        undefined
+      );
+      expect(validator.pubkey, "incorrect pubkey in contract").to.be.equal(
+        item?.pubkey
+      );
+    });
+
+    validators = (await validator.getCandidatesForValidators()).filter(
+      (validator) => validator.cType !== 0
+    );
+
+    expect(
+      validators.length,
+      "candidates list should be empty after save validators"
+    ).to.be.equal(0);
+  });
+
+  it("Should add validators for update from boc to candidatesForValidators", async () => {
     const boc = Buffer.from(
       data.find((el) => el.type === "proof-validators")!.boc[0],
       "hex"
     );
 
-    const header = await tocParser.parseSerializedHeader(boc);
-    const toc = await tocParser.get_tree_of_cells(boc, header);
-    console.log(
-      "root_hash:",
-      toc[header.rootIdx.toNumber()]._hash[0].toString()
-    );
-
     await validator.parseCandidatesRootBlock(boc);
 
+    const validators = (await validator.getCandidatesForValidators()).filter(
+      (validator) => validator.cType !== 0
+    );
+
+    validators.forEach((validator) => {
+      const item = updateValidators.find(
+        (v) => v.node_id === validator.node_id
+      );
+      expect(item, "added some wrong candidate for validators").to.be.not.equal(
+        undefined
+      );
+      expect(validator.pubkey, "incorrect pubkey in contract").to.be.equal(
+        item?.pubkey
+      );
+    });
+  });
+
+  it("Should throw an exception for set validators when signatures was not checked", async () => {
+    try {
+      await validator.setValidatorSet();
+      assert(false);
+    } catch (error) {
+      assert(true);
+    }
+  });
+
+  // TODO: check signatures for wrong boc/fileHash/vdata
+
+  it("Should verify signatures", async () => {
     const signatures = data.find((el) => el.type === "proof-validators")!
       .signatures!;
 
@@ -158,12 +210,48 @@ describe("Tree of Cells parser tests 1", () => {
         })) as any[20]
       );
     }
-    // const validators = await validator.getCandidatesForValidators();
-    // console.log(validators.filter((validator) => validator.cType !== 0));
-    // TODO: fix ownership
+
+    for (let i = 0; i < signatures.length; i++) {
+      expect(
+        await validator.isSignedByValidator(
+          "0x" + signatures[i].node_id,
+          updateValidatorsRootHash
+        )
+      ).to.be.equal(true);
+    }
+  });
+
+  it("should update validators", async () => {
     await validator.setValidatorSet();
-    // const validators = await validator.getValidators();
-    // console.log(validators.filter((validator) => validator.cType !== 0));
+    let validators = (await validator.getValidators()).filter(
+      (validator) => validator.cType !== 0
+    );
+
+    expect(
+      await validator.isVerifiedBlock(updateValidatorsRootHash),
+      "validators block should be valid after save validators"
+    ).to.be.equal(true);
+
+    validators.forEach((validator) => {
+      const item = updateValidators.find(
+        (v) => v.node_id === validator.node_id
+      );
+      expect(item, "added some wrong candidate for validators").to.be.not.equal(
+        undefined
+      );
+      expect(validator.pubkey, "incorrect pubkey in contract").to.be.equal(
+        item?.pubkey
+      );
+    });
+
+    validators = (await validator.getCandidatesForValidators()).filter(
+      (validator) => validator.cType !== 0
+    );
+
+    expect(
+      validators.length,
+      "candidates list should be empty after save validators"
+    ).to.be.equal(0);
   });
 
   it("state-hash test", async () => {
@@ -194,32 +282,19 @@ describe("Tree of Cells parser tests 1", () => {
 
     await validator.addCurrentBlockToVerifiedSet("0x" + rootHash);
 
-    console.log(
-      "valid rh:",
-      "0x" + rootHash,
-      await validator.isVerifiedBlock("0x" + rootHash)
-    );
-    console.log(
-      "strange test:",
-      await validator.isVerifiedBlock(
-        "0x" +
-          "079c3097e73b3d96561e2b90230feba6108929c052b5160fe38f435e1e06cb6d"
-      )
-    );
-
     await validator.setVerifiedBlock(
       "0x456ae983e2af89959179ed8b0e47ab702f06addef7022cb6c365aac4b0e5a0b9",
       0
     );
 
+    expect(
+      await validator.isVerifiedBlock(
+        "0x456ae983e2af89959179ed8b0e47ab702f06addef7022cb6c365aac4b0e5a0b9"
+      )
+    ).to.be.equal(true);
+
     await validator.readMasterProof(boc);
-
-    /* 
-    
-
-    
-    tx-proof
-    */
+    // TODO: add check for new_hash
   });
 
   it("shard state test", async () => {
@@ -227,12 +302,17 @@ describe("Tree of Cells parser tests 1", () => {
       data.find((el) => el.type === "shard-state")!.boc as any,
       "hex"
     );
-    // const rootHash = data.find((el) => el.type === "state-hash")?.id?.rootHash!;
 
     await validator.readStateProof(
       boc,
       "0x456ae983e2af89959179ed8b0e47ab702f06addef7022cb6c365aac4b0e5a0b9"
     );
+
+    expect(
+      await validator.isVerifiedBlock(
+        "0xef2b87352875737c44346b7588cb799b6ca7c10e47015515026f035fe8b6a5c7"
+      )
+    ).to.be.equal(true);
   });
 
   it("shard block test", async () => {
@@ -242,6 +322,11 @@ describe("Tree of Cells parser tests 1", () => {
     );
 
     await validator.parseShardProofPath(boc);
+    expect(
+      await validator.isVerifiedBlock(
+        "0x641ccceabf2d7944f87e7c7d0e5de8c5e00b890044cc6d21ce14103becc6196a"
+      )
+    ).to.be.equal(true);
   });
 
   it("bridge contract reads data from transaction", async () => {
@@ -256,7 +341,9 @@ describe("Tree of Cells parser tests 1", () => {
     );
 
     await bridge.readTransaction(txBoc, boc, adapter.address);
-    // console.log("Message data:");
-    // console.log(data);
+
+    expect(
+      await token.balanceOf("0xe003de6861c9e3b82f293335d4cdf90c299cbbd3")
+    ).to.be.equal("12733090031156665196");
   });
 });

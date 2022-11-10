@@ -87,7 +87,6 @@ contract BlockParser is BitReader, IBlockParser {
         if (!readBool(data, cells, cellIdx)) {
             // Short label detected
             prefixLength = readUnaryLength(data, cells, cellIdx);
-            // console.log("Short label detected", cellIdx, n, prefixLength);
 
             for (uint256 i = 0; i < prefixLength; i++) {
                 pp = (pp << 1) + readBit(data, cells, cellIdx);
@@ -102,7 +101,6 @@ contract BlockParser is BitReader, IBlockParser {
                     cellIdx,
                     uint8(log2Ceil(n))
                 );
-                // console.log("Long label detected", cellIdx, n, prefixLength);
                 for (uint256 i = 0; i < prefixLength; i++) {
                     pp = (pp << 1) + readBit(data, cells, cellIdx);
                 }
@@ -115,15 +113,15 @@ contract BlockParser is BitReader, IBlockParser {
                     cellIdx,
                     uint8(log2Ceil(n))
                 );
-                // console.log("Same label detected", cellIdx, n, prefixLength);
+            
                 for (uint256 i = 0; i < prefixLength; i++) {
                     pp = (pp << 1) + bit;
                 }
             }
         }
-        // console.log("worked?", cellIdx, prefixLength, n);
+        
         if (n - prefixLength == 0) {
-            // console.log("warning, we have validator in base pruned boc");
+            
             // end
             for (uint256 i = 0; i < 32; i++) {
                 if (cellIdxs[i] == 255) {
@@ -136,7 +134,7 @@ contract BlockParser is BitReader, IBlockParser {
         } else {
             uint256 leftIdx = readCell(cells, cellIdx);
             uint256 rightIdx = readCell(cells, cellIdx);
-            // console.log("left/right idxs", cellIdx, leftIdx, rightIdx);
+            
             // NOTE: Left and right branches are implicitly contain prefixes '0' and '1'
             if (leftIdx != 255 && !cells[leftIdx].special) {
                 doParse2(
@@ -202,7 +200,8 @@ contract BlockParser is BitReader, IBlockParser {
         uint256 rootIdx,
         CellData[100] memory treeOfCells
     ) public returns (ValidatorDescription[32] memory) {
-        uint32 tag = readUint32(boc, treeOfCells, rootIdx, 32);
+        // uint32 tag = 
+        readUint32(boc, treeOfCells, rootIdx, 32);
 
         // extra
         uint256 cellIdx = treeOfCells[rootIdx].refs[3];
@@ -223,17 +222,18 @@ contract BlockParser is BitReader, IBlockParser {
 
         if (isKeyBlock) {
             // config params
-            // skip useless data
+            // skip useless data TODO: check tlb for this struct
             // treeOfCells[cellIdx].cursor += 76
             treeOfCells[cellIdx].cursor += 8 + 4;
             // readBytes32BitSize(boc, treeOfCells, cellIdx, 76);
-            bytes32 configAddress = readBytes32BitSize(
+            // bytes32 configAddress = 
+            readBytes32BitSize(
                 boc,
                 treeOfCells,
                 cellIdx,
                 256
             );
-            // console.logBytes32(configAddress);
+            
             uint256 configParamsIdx = treeOfCells[cellIdx].refs[3] == 255
                 ? treeOfCells[cellIdx].refs[2]
                 : treeOfCells[cellIdx].refs[3];
@@ -258,6 +258,9 @@ contract BlockParser is BitReader, IBlockParser {
         }
 
         require(false, "is no key block");
+        // will never runs
+        ValidatorDescription[32] memory nullValidators;
+        return nullValidators;
     }
 
     function parseConfigParam342(
@@ -265,13 +268,19 @@ contract BlockParser is BitReader, IBlockParser {
         uint256 cellIdx,
         CellData[100] memory cells
     ) private returns (ValidatorDescription[32] memory validators) {
-        uint256 skipped = readUint(data, cells, cellIdx, 28);
-        uint8 cType = readUint8(data, cells, cellIdx, 8);
+        // uint256 skipped = 
+        readUint(data, cells, cellIdx, 28);
+        // uint8 cType = 
+        readUint8(data, cells, cellIdx, 8);
 
-        uint32 utime_since = readUint32(data, cells, cellIdx, 32);
-        uint32 utime_until = readUint32(data, cells, cellIdx, 32);
-        uint16 total = readUint16(data, cells, cellIdx, 16);
-        uint16 main = readUint16(data, cells, cellIdx, 16);
+        // uint32 utime_since = 
+        readUint32(data, cells, cellIdx, 32);
+        // uint32 utime_until = 
+        readUint32(data, cells, cellIdx, 32);
+        // uint16 total = 
+        readUint16(data, cells, cellIdx, 16);
+        // uint16 main = 
+        readUint16(data, cells, cellIdx, 16);
 
         uint256 subcellIdx = readCell(cells, cellIdx);
 
@@ -341,7 +350,7 @@ contract BlockParser is BitReader, IBlockParser {
                 break;
             }
             validators[i] = readValidatorDescription(data, txIdxs[i], cells);
-            // console.log("id", i, txIdxs[i]);
+            
         }
 
         return validators;
@@ -396,10 +405,12 @@ contract BlockParser is BitReader, IBlockParser {
         //     isVerifiedBlock(proofTreeOfCells[proofRootIdx]._hash[0]),
         //     "block is not verified"
         // );
-        uint32 tag = readUint32(proofBoc, proofTreeOfCells, proofRootIdx, 32);
-        // console.log("GlobalId:", tag);
+        // uint32 tag = 
+        readUint32(proofBoc, proofTreeOfCells, proofRootIdx, 32);
+        
         // blockInfo^ (pruned)
-        uint256 blockInfoIdx = readCell(proofTreeOfCells, proofRootIdx);
+        // uint256 blockInfoIdx = 
+        readCell(proofTreeOfCells, proofRootIdx);
         // require(check_block_info(proofTreeOfCells, blockInfoIdx, transaction), "lt doesn't belong to block interval");
         // value flow^ (pruned)
         readCell(proofTreeOfCells, proofRootIdx);
@@ -422,7 +433,7 @@ contract BlockParser is BitReader, IBlockParser {
         CellData[100] memory cells,
         uint256 cellIdx,
         uint256 n
-    ) public view returns (uint256) {
+    ) public pure returns (uint256) {
         uint16 last_one = 0;
         uint256 l = 1;
         bool found = false;
@@ -443,7 +454,7 @@ contract BlockParser is BitReader, IBlockParser {
         CellData[100] memory cells,
         uint256 cellIdx,
         TransactionHeader memory transaction
-    ) public view returns (bool) {
+    ) public pure returns (bool) {
         require(
             readUint32(proofBoc, cells, cellIdx, 32) == 0x9bc7a987,
             "not a BlockInfo"
@@ -507,14 +518,14 @@ contract BlockParser is BitReader, IBlockParser {
         readCell(cells, cellIdx);
         // account_blocks^
         uint256 account_blocksIdx = readCell(cells, readCell(cells, cellIdx));
-        // console.log("PARSE WORKS 1");
+        
         uint256[32] memory accountIdxs = parseDict(
             proofBoc,
             cells,
             account_blocksIdx,
             256
         );
-        // console.log("PARSE WORKS 2");
+        
         for (uint256 i = 0; i < 32; i++) {
             if (accountIdxs[i] == 255) {
                 break;

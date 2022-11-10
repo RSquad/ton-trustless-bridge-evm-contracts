@@ -2,7 +2,8 @@
   "name": "hardhat-project",
   "scripts": {
     "test": "NODE_OPTIONS=\"--max-old-space-size=4096\" npx hardhat test --show-stack-traces",
-    "sizes": "npx hardhat size-contracts"
+    "sizes": "npx hardhat size-contracts",
+    "coverage": "NODE_OPTIONS=\"--max-old-space-size=4096\" npx hardhat coverage  --show-stack-traces"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.6",

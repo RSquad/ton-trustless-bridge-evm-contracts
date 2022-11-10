@@ -278,7 +278,7 @@ library Ed25519 {
         bytes32 r,
         bytes32 s,
         bytes memory m
-    ) internal view returns (bool) {
+    ) internal pure returns (bool) {
             uint256 hh;
             // Step 1: compute SHA-512(R, A, M)
             {
@@ -498,8 +498,6 @@ library Ed25519 {
                     kkx = xxyy + xxyy;
                     kku = yy2 + 0x7fffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffed - xx2;
                     kky = xx2 + yy2;
-                    // console.log("zz2", zz2);
-                    // console.log("zz2 + zz2", zz2 + zz2);
                     kkv = addmod(
                         zz2 + zz2,
                         0xffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffff_ffffffda - kku,

@@ -90,9 +90,9 @@ contract ShardValidator is BitReader, IShardValidator {
                 uint256 leafIdx = binTreeCells[j]; // toc[txIdxs[i]].refs[0];
                 binTreeCells[j] = 0;
 
-                // console.log("test for leaf Idx:", leafIdx);
+                
                 if (readBit(boc, toc, leafIdx) == 0) {
-                    // console.log("leafIdx:", leafIdx);
+                    
                     uint8 dType = readUint8(boc, toc, leafIdx, 4);
 
                     require(dType == 0xa || dType == 0xb, "not a ShardDescr");
@@ -146,7 +146,7 @@ contract ShardValidator is BitReader, IShardValidator {
         CellData[100] memory toc
     )
         public
-        view
+        pure
         returns (
             bytes32[10] memory root_hashes,
             VerifiedBlockInfo[10] memory blocks
@@ -166,7 +166,7 @@ contract ShardValidator is BitReader, IShardValidator {
         readUint32(boc, toc, cellIdx, 32);
         bool not_master = readBool(boc, toc, cellIdx);
         bool after_merge = readBool(boc, toc, cellIdx);
-        console.log("MASTER AFTER MERGE flags:", not_master, after_merge);
+        
 
         cellIdx = not_master ? toc[cellIdx].refs[1] : toc[cellIdx].refs[0];
 
@@ -194,8 +194,8 @@ contract ShardValidator is BitReader, IShardValidator {
                     );
                     free_i++;
                 }
-                console.log("aded block with root_hash");
-                console.logBytes32(root_hash);
+                
+                
             }
             // data.prev = loadExtBlkRef(cell, t);
         } else {
@@ -238,8 +238,8 @@ contract ShardValidator is BitReader, IShardValidator {
                         );
                         free_i++;
                     }
-                    console.log("aded block with root_hash");
-                    console.logBytes32(root_hash);
+                    
+                    
                 }
             }
             {
@@ -280,8 +280,8 @@ contract ShardValidator is BitReader, IShardValidator {
                         );
                         free_i++;
                     }
-                    console.log("aded block with root_hash");
-                    console.logBytes32(root_hash);
+                    
+                    
                 }
             }
             // data.prev1 = loadRefIfExist(cell, t, loadExtBlkRef);
@@ -293,7 +293,7 @@ contract ShardValidator is BitReader, IShardValidator {
         bytes calldata boc,
         uint256 rootIdx,
         CellData[100] memory toc
-    ) public view returns (bytes32 new_hash) {
+    ) public pure returns (bytes32 new_hash) {
         // require(
         //     isVerifiedBlock(toc[rootIdx]._hash[0]),
         //     "Block is not verified"
@@ -301,8 +301,9 @@ contract ShardValidator is BitReader, IShardValidator {
 
         // extra
         uint256 cellIdx = toc[rootIdx].refs[2];
-        console.log("test", readUint8(boc, toc, cellIdx, 8));
-        bytes32 old_hash = readBytes32BitSize(boc, toc, cellIdx, 256);
+        readUint8(boc, toc, cellIdx, 8);
+        // bytes32 old_hash = 
+        readBytes32BitSize(boc, toc, cellIdx, 256);
         new_hash = readBytes32BitSize(boc, toc, cellIdx, 256);
 
         // verifiedBlocks[toc[rootIdx]._hash[0]].new_hash = new_hash;
@@ -312,7 +313,6 @@ contract ShardValidator is BitReader, IShardValidator {
         bytes calldata boc,
         uint256 rootIdx,
         CellData[100] memory toc
-        // bytes32 root_hash
     )
         public
         view
@@ -322,16 +322,6 @@ contract ShardValidator is BitReader, IShardValidator {
         )
     {
         uint256 free_i = 0;
-        // console.log("hashes");
-        // console.logBytes32(toc[rootIdx]._hash[0]);
-        // console.logBytes32(verifiedBlocks[root_hash].new_hash);
-
-        // require(
-        //     toc[rootIdx]._hash[0] == verifiedBlocks[root_hash].new_hash,
-        //     "Block with new hash is not verified"
-        // );
-
-        // console.logBytes32(toc[rootIdx]._hash[0]);
 
         require(
             readUint32(boc, toc, rootIdx, 32) == 0x9023afe2,
@@ -348,16 +338,16 @@ contract ShardValidator is BitReader, IShardValidator {
         // prev_blocks
         cellIdx = toc[cellIdx].refs[2];
 
-        console.log("start cell for parse:", cellIdx);
+        
         uint256[32] memory txIdxs = parseDict(boc, toc, cellIdx, 30);
 
-        console.log("parse ended");
+        
 
         for (uint256 i = 0; i < 32; i++) {
             if (txIdxs[i] == 255) {
                 break;
             }
-            console.log("found:", txIdxs[i], toc[txIdxs[i]].cursor);
+            
             toc[txIdxs[i]].cursor += 66;
 
             uint64 end_lt = readUint64(boc, toc, txIdxs[i], 64);
@@ -375,13 +365,6 @@ contract ShardValidator is BitReader, IShardValidator {
                 256
             );
 
-            // verifiedBlocks[blk_root_hash] = VerifiedBlockInfo(
-            //     true,
-            //     seq_no,
-            //     0,
-            //     end_lt,
-            //     blk_file_hash
-            // );
             if (free_i < 10) {
                 root_hashes[free_i] = blk_root_hash;
                 blocks[free_i] = VerifiedBlockInfo(
@@ -393,8 +376,8 @@ contract ShardValidator is BitReader, IShardValidator {
                 );
                 free_i++;
             }
-            console.log("blk root hash:");
-            console.logBytes32(blk_root_hash);
+            
+            
         }
 
         // require(state_hash == verifiedBlocks[toc[rootIdx]._hash[0]].new_hash);

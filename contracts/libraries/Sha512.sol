@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.5 <0.9.0;
-import "hardhat/console.sol";
 
 // Reference: https://csrc.nist.gov/csrc/media/publications/fips/180/2/archive/2002-08-01/documents/fips180-2.pdf
 
@@ -87,10 +86,8 @@ library Sha512 {
         uint64 x,
         uint64 y,
         uint64 z
-    ) internal view returns (uint64) {
-        // console.log("Ch func inside works");
+    ) internal pure returns (uint64) {
         uint64 res = (x & y) ^ ((x ^ 0xffffffffffffffff) & z);
-        // console.log("Ch func inside works", res);
         return res;
     }
 
@@ -110,18 +107,15 @@ library Sha512 {
     // @notice: sigma0(x) = ROTR(x, 28) ^ ROTR(x, 34) ^ ROTR(x, 39)
     // @param x x
     // @return uint64
-    function sigma0(uint64 x) internal view returns (uint64) {
-        // console.log("sigma0 inside func works");
+    function sigma0(uint64 x) internal pure returns (uint64) {
         return ROTR(x, 28) ^ ROTR(x, 34) ^ ROTR(x, 39);
     }
 
     // @notice: sigma1(x) = ROTR(x, 14) ^ ROTR(x, 18) ^ ROTR(x, 41)
     // @param x x
     // @return uint64
-    function sigma1(uint64 x) internal view returns (uint64) {
-        // console.log("sigma1 inside func works");
+    function sigma1(uint64 x) internal pure returns (uint64) {
         uint64 res = ROTR(x, 14) ^ ROTR(x, 18) ^ ROTR(x, 41);
-        // console.log("sigma1 inside func works", res);
         return res;
     }
 
@@ -153,7 +147,7 @@ library Sha512 {
     // @notice Calculate the SHA512 of input data.
     // @param data input data bytes
     // @return 512 bits hash result
-    function hash(bytes memory data) internal view returns (uint64[8] memory) {
+    function hash(bytes memory data) internal pure returns (uint64[8] memory) {
         uint64[8] memory H = [
             0x6a09e667f3bcc908,
             0xbb67ae8584caa73b,
@@ -278,23 +272,7 @@ library Sha512 {
                             W[i - 16]
                     );
                 }
-                // console.log("T1 calculating start");
-                // console.log("fvar.e", fvar.e);
-                // console.log("sigma1(fvar.e)", sigma1(fvar.e));
-                // console.log(
-                //     "Ch(fvar.e, fvar.f, fvar.g)",
-                //     Ch(fvar.e, fvar.f, fvar.g)
-                // );
-                // console.log("K[i]", K[i]);
-                // console.log("W[i]", W[i]);
-                // console.log(
-                //     "T1",
-                //     uint64(uint(fvar.h) +
-                //         sigma1(fvar.e) +
-                //         Ch(fvar.e, fvar.f, fvar.g) +
-                //         K[i] +
-                //         W[i])
-                // );
+            
                 T1 = uint64(
                     uint256(fvar.h) +
                         sigma1(fvar.e) +
@@ -302,11 +280,11 @@ library Sha512 {
                         K[i] +
                         W[i]
                 );
-                // console.log("sigma1 ch works here", i);
+                
                 T2 = uint64(
                     uint256(sigma0(fvar.a)) + Maj(fvar.a, fvar.b, fvar.c)
                 );
-                // console.log("sigma2 Maj works here", i);
+                
                 fvar.h = fvar.g;
                 fvar.g = fvar.f;
                 fvar.f = fvar.e;
@@ -315,7 +293,7 @@ library Sha512 {
                 fvar.c = fvar.b;
                 fvar.b = fvar.a;
                 fvar.a = uint64(uint256(T1) + T2);
-                // console.log("set fvars works fine", i);
+                
             }
 
             H[0] = uint64(uint256(H[0]) + fvar.a);
