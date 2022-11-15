@@ -54,6 +54,11 @@ const config: HardhatUserConfig = {
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
+    testnet_bnb: {
+      url: "https://data-seed-prebsc-1-s3.binance.org:8545",
+      accounts: [process.env.PRIVATE_KEY || ""],
+      gas: 8000000,
+    },
   },
   gasReporter: {
     enabled: true, // process.env.REPORT_GAS !== undefined,

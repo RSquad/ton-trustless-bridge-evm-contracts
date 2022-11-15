@@ -5,12 +5,13 @@ import "./types/BlockTypes.sol";
 import "./validator/SignatureValidator.sol";
 import "./parser/TreeOfCellsParser.sol";
 import "./validator/ShardValidator.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 interface IValidator {
     function isVerifiedBlock(bytes32 rootHash) external view returns (bool);
 }
 
-contract Validator is IValidator {
+contract Validator is IValidator, Ownable {
     mapping(bytes32 => VerifiedBlockInfo) verifiedBlocks;
     // bytes32 root_hash;
 
@@ -82,7 +83,17 @@ contract Validator is IValidator {
         );
     }
 
-    // fix ownership
+    function initValidators() public onlyOwner {
+        bytes32 key_block_root_hash = signatureValidator.initValidators();
+        verifiedBlocks[key_block_root_hash] = VerifiedBlockInfo(
+            true,
+            0,
+            0,
+            0,
+            0
+        );
+    }
+
     function setValidatorSet() public {
         bytes32 key_block_root_hash = signatureValidator.setValidatorSet();
         verifiedBlocks[key_block_root_hash] = VerifiedBlockInfo(
@@ -194,7 +205,7 @@ contract Validator is IValidator {
         }
     }
 
-    function setVerifiedBlock(bytes32 root_hash, uint32 seq_no) public {
+    function setVerifiedBlock(bytes32 root_hash, uint32 seq_no) public onlyOwner {
         require(!isVerifiedBlock(root_hash), "block already verified");
         verifiedBlocks[root_hash] = VerifiedBlockInfo(true, seq_no, 0, 0, 0);
     }

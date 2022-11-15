@@ -119,7 +119,7 @@ describe("Tree of Cells parser tests 1", () => {
   // TODO: onlyOwner test
 
   it("Should set initial validators and its block's hash", async () => {
-    await validator.setValidatorSet();
+    await validator.initValidators();
     let validators = (await validator.getValidators()).filter(
       (validator) => validator.cType !== 0
     );

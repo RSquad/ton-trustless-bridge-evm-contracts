@@ -17,8 +17,11 @@ interface ISignatureValidator {
 
     // function setRootHashForValidating(bytes32 rh) external;
 
-    function verifyValidators(bytes32 root_h, bytes32 file_hash, Vdata[20] calldata vdata)
-        external;
+    function verifyValidators(
+        bytes32 root_h,
+        bytes32 file_hash,
+        Vdata[20] calldata vdata
+    ) external;
 
     function getValidators()
         external
@@ -44,7 +47,12 @@ interface ISignatureValidator {
         CellData[100] memory cells
     ) external;
 
-    function isSignedByValidator(bytes32 node_id, bytes32 root_h) external view returns (bool);
+    function isSignedByValidator(bytes32 node_id, bytes32 root_h)
+        external
+        view
+        returns (bool);
+
+    function initValidators() external returns (bytes32);
 }
 
 contract SignatureValidator is ISignatureValidator, Ownable {
@@ -65,7 +73,11 @@ contract SignatureValidator is ISignatureValidator, Ownable {
         blockParser = IBlockParser(blockParserAddr);
     }
 
-    function isSignedByValidator(bytes32 node_id, bytes32 root_h) public view returns (bool) {
+    function isSignedByValidator(bytes32 node_id, bytes32 root_h)
+        public
+        view
+        returns (bool)
+    {
         return signedBlocks[node_id][root_h];
     }
 
@@ -98,7 +110,6 @@ contract SignatureValidator is ISignatureValidator, Ownable {
         view
         returns (bytes32)
     {
-
         uint64 currentWeight = 0;
         for (uint256 j = 0; j < validatorSet.length; j++) {
             if (signedBlocks[validatorSet[j].node_id][root_h]) {
@@ -111,14 +122,17 @@ contract SignatureValidator is ISignatureValidator, Ownable {
         return root_hash;
     }
 
-    function verifyValidators(bytes32 root_h, bytes32 file_hash, Vdata[20] calldata vdata)
-        public
-    {
-        
-        
+    function verifyValidators(
+        bytes32 root_h,
+        bytes32 file_hash,
+        Vdata[20] calldata vdata
+    ) public {
         bytes32 test_root_hash = root_hash == 0 ? root_h : root_hash;
 
-        require(test_root_hash != 0 && file_hash != 0, "wrong root_hash or file_hash");
+        require(
+            test_root_hash != 0 && file_hash != 0,
+            "wrong root_hash or file_hash"
+        );
 
         uint256 validatodIdx = validatorSet.length;
         for (uint256 i = 0; i < 20; i++) {
@@ -138,34 +152,46 @@ contract SignatureValidator is ISignatureValidator, Ownable {
                     vdata[i].s,
                     bytes.concat(bytes4(0x706e0bc5), test_root_hash, file_hash)
                 )
-                
             ) {
-                
-                signedBlocks[validatorSet[validatodIdx].node_id][test_root_hash] = true;
+                signedBlocks[validatorSet[validatodIdx].node_id][
+                    test_root_hash
+                ] = true;
             }
         }
+    }
+
+    function initValidators() public onlyOwner returns (bytes32) {
+        require(validatorSet[0].weight == 0, "current validators not empty");
+
+        validatorSet = candidatesForValidatorSet;
+        delete candidatesForValidatorSet;
+
+        totalWeight = candidatesTotalWeight;
+        candidatesTotalWeight = 0;
+        bytes32 rh = root_hash;
+        root_hash = 0;
+
+        return (rh);
     }
 
     function setValidatorSet() public returns (bytes32) {
         // if current validatorSet is empty, check caller
         // else check votes
-        if (validatorSet[0].weight == 0) {
-            _checkOwner();
-        } else {
-            // check all pruned cells are empty
-            for (uint256 i = 0; i < prunedCells.length; i++) {
-                require(prunedCells[i].hash == 0, "need read all validators");
-            }
+        require(validatorSet[0].weight != 0);
 
-            uint64 currentWeight = 0;
-            for (uint256 j = 0; j < validatorSet.length; j++) {
-                if (signedBlocks[validatorSet[j].node_id][root_hash]) {
-                    currentWeight += validatorSet[j].weight;
-                }
-            }
-
-            require(currentWeight * 3 > totalWeight * 2, "not enought votes");
+        // check all pruned cells are empty
+        for (uint256 i = 0; i < prunedCells.length; i++) {
+            require(prunedCells[i].hash == 0, "need read all validators");
         }
+
+        uint64 currentWeight = 0;
+        for (uint256 j = 0; j < validatorSet.length; j++) {
+            if (signedBlocks[validatorSet[j].node_id][root_hash]) {
+                currentWeight += validatorSet[j].weight;
+            }
+        }
+
+        require(currentWeight * 3 > totalWeight * 2, "not enought votes");
 
         validatorSet = candidatesForValidatorSet;
         delete candidatesForValidatorSet;
