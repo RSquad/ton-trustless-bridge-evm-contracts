@@ -42,7 +42,7 @@ contract Validator is IValidator, Ownable {
     }
 
     function getValidators()
-        external
+        public
         view
         returns (ValidatorDescription[100] memory)
     {

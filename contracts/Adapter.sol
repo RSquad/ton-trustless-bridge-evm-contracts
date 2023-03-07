@@ -35,8 +35,8 @@ contract Adapter is BitReader, Ownable, IBaseAdapter {
             readCell(cells, rootIdx)
         );
 
-        TestData memory msgData = getDataFromMessages(boc, cells, messages.outMessages);
-        _token.mint(msgData.amount, msgData.eth_address);
+        // TestData memory msgData = getDataFromMessages(boc, cells, messages.outMessages);
+        // _token.mint(msgData.amount, msgData.eth_address);
     }
 
     function getDataFromMessages(

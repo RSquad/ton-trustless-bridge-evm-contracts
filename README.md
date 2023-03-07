@@ -534,3 +534,11 @@ addr_var$11 anycast:(Maybe Anycast) addr_len:(## 9)
 В документации не указаны методы следующих контрактов:
 - Ed25519 и Sha512 - содержат соответствующий алгоритм Ed25519.
 
+docker run -e LITESERVER=94.237.45.107:13833 -e LITESERVER_KEY=QpVqQiv1u3nCHuBR3cg3fT6NqaFLlnLGbEgtBRukDpU= ca41a79ba462
+
+docker run -e LITESERVER=185.86.76.183:5815 -e LITESERVER_KEY=5v2dHtSclsGsZVbNVwTj4hQDso5xvQjzL/yPEHJevHk= ca41a79ba462
+
+docker run -e LITESERVER=94.237.45.107:13833 -e LITESERVER_KEY=QpVqQiv1u3nCHuBR3cg3fT6NqaFLlnLGbEgtBRukDpU= --publish 8081:8081 ca41a79ba462
+
+
+docker run -e LITESERVER=5.9.10.47:19949 -e LITESERVER_KEY=n4VDnSCUuSpjnCyUk9e3QOOd6o0ItSWYbTnW3Wnn8wk= --publish 8081:8081 ca41a79ba462

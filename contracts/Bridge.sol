@@ -42,6 +42,8 @@ contract Bridge {
             blockHeader
         );
 
+        // blockHeader.rootIdx = blockToc[blockHeader.rootIdx].refs[0];
+
         require(_validator.isVerifiedBlock(blockToc[blockHeader.rootIdx]._hash[0]), "invalid block");
 
         TransactionHeader memory txInfo = _transactionParser.parseTransactionHeader(txBoc, txToC, txHeader.rootIdx);

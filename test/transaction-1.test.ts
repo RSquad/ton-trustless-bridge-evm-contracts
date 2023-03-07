@@ -1,4 +1,5 @@
 /* eslint-disable node/no-missing-import */
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { assert } from "console";
 import { BigNumber } from "ethers";
