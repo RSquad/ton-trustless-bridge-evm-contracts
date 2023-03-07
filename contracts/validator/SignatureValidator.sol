@@ -119,7 +119,7 @@ contract SignatureValidator is ISignatureValidator, Ownable {
 
         require(currentWeight * 3 > totalWeight * 2, "not enought votes");
 
-        return root_hash;
+        return root_h;
     }
 
     function verifyValidators(

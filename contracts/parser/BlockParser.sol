@@ -394,12 +394,13 @@ contract BlockParser is BitReader, IBlockParser {
         bytes32 txRootHash,
         TransactionHeader memory transaction
     ) public view returns (bool) {
-        uint256 proofRootIdx = proofBocInfo.cell_count -
-            readInt(
-                proofBoc[proofBocInfo.roots_offset:],
-                proofBocInfo.ref_byte_size
-            ) -
-            1;
+        uint256 proofRootIdx = proofBocInfo.rootIdx;
+        // uint256 proofRootIdx = proofBocInfo.cell_count -
+        //     readInt(
+        //         proofBoc[proofBocInfo.roots_offset:],
+        //         proofBocInfo.ref_byte_size
+        //     ) -
+        //     1;
 
         // require(
         //     isVerifiedBlock(proofTreeOfCells[proofRootIdx]._hash[0]),

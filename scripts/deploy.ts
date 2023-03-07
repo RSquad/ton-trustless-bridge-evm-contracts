@@ -86,6 +86,8 @@ async function main() {
   console.log("adapter deployed to:", adapter.address);
 
   adapter.transferOwnership(bridge.address);
+
+  // console.log(await validator.getValidators());
 }
 
 // We recommend this pattern to be able to use async/await everywhere
