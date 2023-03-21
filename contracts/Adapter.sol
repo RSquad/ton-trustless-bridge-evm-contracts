@@ -5,6 +5,7 @@ import "./optimization/Token.sol";
 import "./parser/TransactionParser.sol";
 import "./parser/BitReader.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "hardhat/console.sol";
 
 interface IBaseAdapter {
     function execute(
@@ -35,18 +36,26 @@ contract Adapter is BitReader, Ownable, IBaseAdapter {
             readCell(cells, rootIdx)
         );
 
-        // TestData memory msgData = getDataFromMessages(boc, cells, messages.outMessages);
-        // _token.mint(msgData.amount, msgData.eth_address);
+        
+        TestData memory msgData = getDataFromMessages(boc, cells, messages.outMessages);
+        _token.mint(msgData.amount, msgData.eth_address);
+        console.log(msgData.amount, msgData.eth_address);
+        // _token.mint(1000000000, 0x70997970C51812dc3A010C7d01b50e0d17dc79C8);
     }
 
     function getDataFromMessages(
         bytes calldata bocData,
         CellData[100] memory cells,
         Message[5] memory outMessages
-    ) private pure returns (TestData memory data) {
+    ) private view returns (TestData memory data) {
         for (uint256 i = 0; i < 5; i++) {
+            console.log(outMessages[i].bodyIdx, cells[outMessages[i].bodyIdx].cursor);
+            // console.logBytes(bocData[cells[outMessages[i].bodyIdx].cursor / 8:]);
+            // console.log("found");
             if (outMessages[i].info.dest.hash == bytes32(uint256(0xc0470ccf))) {
                 uint256 idx = outMessages[i].bodyIdx;
+                // test
+                cells[outMessages[i].bodyIdx].cursor += 634;
                 data.eth_address = address(
                     uint160(readUint(bocData, cells, idx, 160))
                 );

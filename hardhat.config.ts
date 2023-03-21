@@ -46,13 +46,15 @@ const config: HardhatUserConfig = {
     local: {
       url: "http://127.0.0.1:8545/",
       chainId: 31337,
+      gasPrice: 35000000000,
     },
-    // hardhat: {
+    hardhat: {
+      gasPrice: 35000000000,
     //   // gasPrice: 470000000000,
     //   // blockGasLimit: 9990000000000,
     //   // chainId: 43112,
     //   // allowUnlimitedContractSize: true,
-    // },
+    },
     ropsten: {
       url: process.env.ROPSTEN_URL || "",
       accounts:

@@ -3,6 +3,7 @@ pragma solidity >=0.8.5 <0.9.0;
 
 import "../types/TransactionTypes.sol";
 import "../parser/BitReader.sol";
+import "hardhat/console.sol";
 
 interface ITransactionParser {
     function deserializeMsgDate(
@@ -22,6 +23,13 @@ interface ITransactionParser {
         CellData[100] memory cells,
         uint256 messagesIdx
     ) external view returns (MessagesHeader memory messagesHeader);
+
+
+    function getDataFromMessages(
+        bytes calldata bocData,
+        CellData[100] memory cells,
+        Message[5] memory outMessages
+    ) external view returns (TestData memory data);
 }
 
 contract TransactionParser is BitReader, ITransactionParser {
@@ -124,8 +132,9 @@ contract TransactionParser is BitReader, ITransactionParser {
         bytes calldata bocData,
         CellData[100] memory cells,
         Message[5] memory outMessages
-    ) public pure returns (TestData memory data) {
+    ) public view returns (TestData memory data) {
         for (uint256 i = 0; i < 5; i++) {
+            console.log(outMessages[i].bodyIdx, cells[outMessages[i].bodyIdx].cursor);
             if (outMessages[i].info.dest.hash == bytes32(uint256(0xc0470ccf))) {
                 uint256 idx = outMessages[i].bodyIdx;
                 data.eth_address = address(
@@ -145,20 +154,43 @@ contract TransactionParser is BitReader, ITransactionParser {
     ) public view returns (Message memory message) {
         message.info = parseCommonMsgInfo(data, cells, messagesIdx);
         bool hasInit = readBool(data, cells, messagesIdx);
+        
         if (hasInit) {
             if (readBool(data, cells, messagesIdx)) {
                 // init = parseStateInit(slice);
+                // console.log("has init curr");
+                // parseStateInit(data, cells, messagesIdx);
             } else {
+                // console.log("has init ref");
                 // init = parseStateInit(slice.readRef());
                 readCell(cells, messagesIdx);
             }
         }
 
-        message.bodyIdx = readBool(data, cells, messagesIdx)
+        bool flag = readBool(data, cells, messagesIdx);
+        console.log("body is ref?");
+        console.log(flag);
+        // console.logBytes(flag ? data[cells[cells[messagesIdx].cursorRef].cursor / 8:] : data[cells[messagesIdx].cursor / 8:]);
+
+        message.bodyIdx = flag
             ? readCell(cells, messagesIdx)
             : messagesIdx;
 
         return message;
+    }
+
+    function parseStateInit(
+        bytes calldata data,
+        CellData[100] memory cells,
+        uint256 idx
+    ) public pure {
+        if(readBool(data,cells,idx)) {
+            readUint(data, cells, idx, 5);
+        }
+        if(readBool(data,cells,idx)) {
+            readUint(data, cells, idx, 2);
+        }
+
     }
 
     function parseCommonMsgInfo(

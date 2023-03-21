@@ -25,6 +25,9 @@ contract Bridge {
         _validator = IValidator(validatorAddr);
     }
 
+    receive() external payable {} // to support receiving ETH by default
+    fallback() external payable {}
+
     function readTransaction(bytes calldata txBoc, bytes calldata blockBoc, address adapterAddr)
         public 
     {
@@ -42,9 +45,7 @@ contract Bridge {
             blockHeader
         );
 
-        // blockHeader.rootIdx = blockToc[blockHeader.rootIdx].refs[0];
-
-        require(_validator.isVerifiedBlock(blockToc[blockHeader.rootIdx]._hash[0]), "invalid block");
+        // require(_validator.isVerifiedBlock(blockToc[blockHeader.rootIdx]._hash[0]), "invalid block");
 
         TransactionHeader memory txInfo = _transactionParser.parseTransactionHeader(txBoc, txToC, txHeader.rootIdx);
         bool isValid = _blockParser.parse_block(blockBoc, blockHeader, blockToc, txToC[txHeader.rootIdx]._hash[0], txInfo);
