@@ -6,6 +6,7 @@ import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
+import "hardhat-contract-sizer";
 
 dotenv.config();
 
@@ -23,17 +24,51 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 // Go to https://hardhat.org/config/ to learn more
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.15",
+  mocha: {
+    timeout: 10000000,
+  },
+  solidity: {
+    compilers: [
+      {
+        version: "0.8.15",
+        settings: {
+          //   // viaIR: true,
+          optimizer: {
+            enabled: true,
+            runs: 5000,
+          },
+        },
+      },
+      { version: "0.6.8", settings: {} },
+    ],
+  },
   networks: {
+    local: {
+      url: "http://127.0.0.1:8545/",
+      chainId: 31337,
+    },
+    // hardhat: {
+    //   // gasPrice: 470000000000,
+    //   // blockGasLimit: 9990000000000,
+    //   // chainId: 43112,
+    //   // allowUnlimitedContractSize: true,
+    // },
     ropsten: {
       url: process.env.ROPSTEN_URL || "",
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
+    testnet_bnb: {
+      url: "https://data-seed-prebsc-1-s3.binance.org:8545",
+      accounts: [process.env.PRIVATE_KEY || ""],
+      gas: 8000000,
+    },
   },
   gasReporter: {
-    enabled: process.env.REPORT_GAS !== undefined,
-    currency: "USD",
+    enabled: true, // process.env.REPORT_GAS !== undefined,
+    // currency: "USD",
+    // gasPrice: 18,
+    // onlyCalledMethods: false,
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
