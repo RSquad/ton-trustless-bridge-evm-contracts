@@ -24,6 +24,9 @@ contract TreeOfCellsParser is BitReader, ITreeOfCellsParser {
     bytes4 public constant BOC_IDX_CRC32C = 0xacc3a728;
     bytes4 public constant BOC_GENERIC = 0xb5ee9c72;
 
+    receive() external payable {} // to support receiving ETH by default
+    fallback() external payable {}
+
     function readInt(bytes calldata data, uint256 size)
         public
         pure

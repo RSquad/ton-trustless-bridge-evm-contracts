@@ -19,6 +19,9 @@ contract Validator is IValidator, Ownable {
     ITreeOfCellsParser tocParser;
     IShardValidator shardValidator;
 
+    receive() external payable {} // to support receiving ETH by default
+    fallback() external payable {}
+
     constructor(
         address signatureValidatorAddr,
         address shardValidatorAddr,
@@ -42,9 +45,9 @@ contract Validator is IValidator, Ownable {
     }
 
     function getValidators()
-        external
+        public
         view
-        returns (ValidatorDescription[100] memory)
+        returns (ValidatorDescription[20] memory)
     {
         return signatureValidator.getValidators();
     }
@@ -52,7 +55,7 @@ contract Validator is IValidator, Ownable {
     function getCandidatesForValidators()
         external
         view
-        returns (ValidatorDescription[100] memory)
+        returns (ValidatorDescription[20] memory)
     {
         return signatureValidator.getCandidatesForValidators();
     }
@@ -105,7 +108,7 @@ contract Validator is IValidator, Ownable {
         );
     }
 
-    function verifyValidators(bytes32 root_h, bytes32 file_hash, Vdata[20] calldata vdata)
+    function verifyValidators(bytes32 root_h, bytes32 file_hash, Vdata[5] calldata vdata)
         public
     {
         signatureValidator.verifyValidators(root_h, file_hash, vdata);
