@@ -25,9 +25,16 @@ contract Bridge {
         _validator = IValidator(validatorAddr);
     }
 
-    function readTransaction(bytes calldata txBoc, bytes calldata blockBoc, address adapterAddr)
-        public 
-    {
+    receive() external payable {} // to support receiving ETH by default
+
+    fallback() external payable {}
+
+    function readTransaction(
+        bytes calldata txBoc,
+        bytes calldata blockBoc,
+        address adapterAddr,
+        uint256 opcode
+    ) public {
         BagOfCellsInfo memory txHeader = _treeOfCellsParser
             .parseSerializedHeader(txBoc);
         BagOfCellsInfo memory blockHeader = _treeOfCellsParser
@@ -42,14 +49,39 @@ contract Bridge {
             blockHeader
         );
 
-        require(_validator.isVerifiedBlock(blockToc[blockHeader.rootIdx]._hash[0]), "invalid block");
+        require(
+            _validator.isVerifiedBlock(blockToc[blockHeader.rootIdx]._hash[0]),
+            "invalid block"
+        );
 
-        TransactionHeader memory txInfo = _transactionParser.parseTransactionHeader(txBoc, txToC, txHeader.rootIdx);
-        bool isValid = _blockParser.parse_block(blockBoc, blockHeader, blockToc, txToC[txHeader.rootIdx]._hash[0], txInfo);
+        TransactionHeader memory txInfo = _transactionParser
+            .parseTransactionHeader(txBoc, txToC, txHeader.rootIdx);
+        bool isValid = _blockParser.parse_block(
+            blockBoc,
+            blockHeader,
+            blockToc,
+            txToC[txHeader.rootIdx]._hash[0],
+            txInfo
+        );
 
         require(isValid, "Wrong block for transaction");
 
         IBaseAdapter adapter = IBaseAdapter(adapterAddr);
-        adapter.execute(txBoc, txToC, txHeader.rootIdx);
+        adapter.execute(txBoc, opcode, txToC, txHeader.rootIdx);
+    }
+
+    function swapETH(uint256 to, address adapterAddr) public payable {
+        IBaseAdapter adapter = IBaseAdapter(adapterAddr);
+        adapter.swapETH{value: msg.value}(to);
+    }
+
+    function swapToken(
+        address from,
+        uint256 amount,
+        uint256 to,
+        address adapterAddr
+    ) public {
+        IBaseAdapter adapter = IBaseAdapter(adapterAddr);
+        adapter.swapToken(from, amount, to);
     }
 }
