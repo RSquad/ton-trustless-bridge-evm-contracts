@@ -5,19 +5,25 @@ import "./optimization/Token.sol";
 import "./parser/TransactionParser.sol";
 import "./parser/BitReader.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "hardhat/console.sol";
+
+// import "hardhat/console.sol";
 
 interface IBaseAdapter {
     function execute(
         bytes calldata boc,
+        uint256 opcode,
         CellData[100] memory cells,
         uint256 rootIdx
-        ) external;
+    ) external;
+    function swapETH(uint256 to) external payable;
+    function swapToken(address from, uint256 amount, uint256 to) external;
 }
 
 contract Adapter is BitReader, Ownable, IBaseAdapter {
     MintableToken _token;
     ITransactionParser _transactionParser;
+    event SwapEthereumInitialized(uint256 to, uint256 amount);
+    event SwapWTONInitialized(uint256 to, uint256 amount);
 
     constructor(address tonToken, address transactionParser) {
         _token = MintableToken(tonToken);
@@ -26,9 +32,10 @@ contract Adapter is BitReader, Ownable, IBaseAdapter {
 
     function execute(
         bytes calldata boc,
+        uint256 opcode,
         CellData[100] memory cells,
         uint256 rootIdx
-        ) public onlyOwner {
+    ) public onlyOwner {
         _transactionParser.parseTransactionHeader(boc, cells, rootIdx);
         MessagesHeader memory messages = _transactionParser.parseMessagesHeader(
             boc,
@@ -36,30 +43,46 @@ contract Adapter is BitReader, Ownable, IBaseAdapter {
             readCell(cells, rootIdx)
         );
 
-        
-        TestData memory msgData = getDataFromMessages(boc, cells, messages.outMessages);
-        _token.mint(msgData.amount, msgData.eth_address);
-        console.log(msgData.amount, msgData.eth_address);
-        // _token.mint(1000000000, 0x70997970C51812dc3A010C7d01b50e0d17dc79C8);
+        TestData memory msgData = getDataFromMessages(
+            boc,
+            opcode,
+            cells,
+            messages.outMessages
+        );
+
+        if (opcode == 0x1) {
+            _token.mint(msgData.amount * 1000000000, msgData.eth_address);
+        }
+
+        if (opcode == 0x2) {
+            address payable receiver = payable(msgData.eth_address);
+            receiver.transfer(msgData.amount);
+        }
+    }
+
+    function swapETH(uint256 to) public payable {
+        emit SwapEthereumInitialized(to, msg.value);
+    }
+
+    function swapToken(address from, uint256 amount, uint256 to) public {
+        _token.burn(from, amount);
+        emit SwapWTONInitialized(to, amount);
     }
 
     function getDataFromMessages(
         bytes calldata bocData,
+        uint256 opcode,
         CellData[100] memory cells,
         Message[5] memory outMessages
-    ) private view returns (TestData memory data) {
+    ) private pure returns (TestData memory data) {
         for (uint256 i = 0; i < 5; i++) {
-            console.log(outMessages[i].bodyIdx, cells[outMessages[i].bodyIdx].cursor);
-            // console.logBytes(bocData[cells[outMessages[i].bodyIdx].cursor / 8:]);
-            // console.log("found");
-            if (outMessages[i].info.dest.hash == bytes32(uint256(0xc0470ccf))) {
+            if (outMessages[i].info.dest.hash == bytes32(opcode)) {
                 uint256 idx = outMessages[i].bodyIdx;
-                // test
-                cells[outMessages[i].bodyIdx].cursor += 634;
+                // cells[outMessages[i].bodyIdx].cursor += 634;
                 data.eth_address = address(
-                    uint160(readUint(bocData, cells, idx, 160))
+                    uint160(readUint(bocData, cells, idx, 256))
                 );
-                data.amount = readUint64(bocData, cells, idx, 64);
+                data.amount = readUint(bocData, cells, idx, 256);
             }
         }
 

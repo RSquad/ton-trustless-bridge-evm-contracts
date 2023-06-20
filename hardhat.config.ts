@@ -65,6 +65,10 @@ const config: HardhatUserConfig = {
       accounts: [process.env.PRIVATE_KEY || ""],
       gas: 8000000,
     },
+    sepolia: {
+      url: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      accounts: [process.env.PRIVATE_KEY || ""],
+    },
   },
   gasReporter: {
     enabled: true, // process.env.REPORT_GAS !== undefined,

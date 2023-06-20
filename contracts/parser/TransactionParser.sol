@@ -3,7 +3,7 @@ pragma solidity >=0.8.5 <0.9.0;
 
 import "../types/TransactionTypes.sol";
 import "../parser/BitReader.sol";
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 interface ITransactionParser {
     function deserializeMsgDate(
@@ -134,13 +134,21 @@ contract TransactionParser is BitReader, ITransactionParser {
         Message[5] memory outMessages
     ) public view returns (TestData memory data) {
         for (uint256 i = 0; i < 5; i++) {
-            console.log(outMessages[i].bodyIdx, cells[outMessages[i].bodyIdx].cursor);
-            if (outMessages[i].info.dest.hash == bytes32(uint256(0xc0470ccf))) {
+            // console.log(outMessages[i].bodyIdx, cells[outMessages[i].bodyIdx].cursor);
+            // 0xF0A28992
+            // 0xc0470ccf
+            // console.logBytes(bocData[cells[outMessages[i].bodyIdx].cursor / 8:]);
+            if (outMessages[i].info.dest.hash == bytes32(uint256(0x1))) {
                 uint256 idx = outMessages[i].bodyIdx;
+                
                 data.eth_address = address(
-                    uint160(readUint(bocData, cells, idx, 160))
+                    uint160(readUint(bocData, cells, idx, 256))
                 );
-                data.amount = readUint64(bocData, cells, idx, 64);
+                // data.amount = 0;
+                // console.log("amount");
+                // console.log(uint(readCoins(bocData, cells, idx)));
+                // data.amount = readUint64(bocData, cells, idx, 16);
+                data.amount = readUint(bocData, cells, idx, 256);
             }
         }
 
@@ -168,8 +176,8 @@ contract TransactionParser is BitReader, ITransactionParser {
         }
 
         bool flag = readBool(data, cells, messagesIdx);
-        console.log("body is ref?");
-        console.log(flag);
+        // console.log("body is ref?");
+        // console.log(flag);
         // console.logBytes(flag ? data[cells[cells[messagesIdx].cursorRef].cursor / 8:] : data[cells[messagesIdx].cursor / 8:]);
 
         message.bodyIdx = flag

@@ -10,28 +10,27 @@ import "../parser/BlockParser.sol";
 interface ISignatureValidator {
     function getPrunedCells() external view returns (CachedCell[10] memory);
 
-    function addCurrentBlockToVerifiedSet(bytes32 root_h)
-        external
-        view
-        returns (bytes32);
+    function addCurrentBlockToVerifiedSet(
+        bytes32 root_h
+    ) external view returns (bytes32);
 
     // function setRootHashForValidating(bytes32 rh) external;
 
     function verifyValidators(
         bytes32 root_h,
         bytes32 file_hash,
-        Vdata[20] calldata vdata
+        Vdata[5] calldata vdata
     ) external;
 
     function getValidators()
         external
         view
-        returns (ValidatorDescription[100] memory);
+        returns (ValidatorDescription[20] memory);
 
     function getCandidatesForValidators()
         external
         view
-        returns (ValidatorDescription[100] memory);
+        returns (ValidatorDescription[20] memory);
 
     function setValidatorSet() external returns (bytes32);
 
@@ -47,20 +46,20 @@ interface ISignatureValidator {
         CellData[100] memory cells
     ) external;
 
-    function isSignedByValidator(bytes32 node_id, bytes32 root_h)
-        external
-        view
-        returns (bool);
+    function isSignedByValidator(
+        bytes32 node_id,
+        bytes32 root_h
+    ) external view returns (bool);
 
     function initValidators() external returns (bytes32);
 }
 
 contract SignatureValidator is ISignatureValidator, Ownable {
-    ValidatorDescription[100] private validatorSet;
+    ValidatorDescription[20] private validatorSet;
     uint64 private totalWeight = 0;
 
     CachedCell[10] private prunedCells;
-    ValidatorDescription[100] private candidatesForValidatorSet;
+    ValidatorDescription[20] private candidatesForValidatorSet;
     uint64 private candidatesTotalWeight = 0;
 
     bytes32 private root_hash;
@@ -73,11 +72,10 @@ contract SignatureValidator is ISignatureValidator, Ownable {
         blockParser = IBlockParser(blockParserAddr);
     }
 
-    function isSignedByValidator(bytes32 node_id, bytes32 root_h)
-        public
-        view
-        returns (bool)
-    {
+    function isSignedByValidator(
+        bytes32 node_id,
+        bytes32 root_h
+    ) public view returns (bool) {
         return signedBlocks[node_id][root_h];
     }
 
@@ -88,7 +86,7 @@ contract SignatureValidator is ISignatureValidator, Ownable {
     function getValidators()
         public
         view
-        returns (ValidatorDescription[100] memory)
+        returns (ValidatorDescription[20] memory)
     {
         return validatorSet;
     }
@@ -96,7 +94,7 @@ contract SignatureValidator is ISignatureValidator, Ownable {
     function getCandidatesForValidators()
         public
         view
-        returns (ValidatorDescription[100] memory)
+        returns (ValidatorDescription[20] memory)
     {
         return candidatesForValidatorSet;
     }
@@ -105,11 +103,9 @@ contract SignatureValidator is ISignatureValidator, Ownable {
     //     root_hash = rh;
     // }
 
-    function addCurrentBlockToVerifiedSet(bytes32 root_h)
-        public
-        view
-        returns (bytes32)
-    {
+    function addCurrentBlockToVerifiedSet(
+        bytes32 root_h
+    ) public view returns (bytes32) {
         uint64 currentWeight = 0;
         for (uint256 j = 0; j < validatorSet.length; j++) {
             if (signedBlocks[validatorSet[j].node_id][root_h]) {
@@ -125,7 +121,7 @@ contract SignatureValidator is ISignatureValidator, Ownable {
     function verifyValidators(
         bytes32 root_h,
         bytes32 file_hash,
-        Vdata[20] calldata vdata
+        Vdata[5] calldata vdata
     ) public {
         bytes32 test_root_hash = root_hash == 0 ? root_h : root_hash;
 
@@ -135,7 +131,7 @@ contract SignatureValidator is ISignatureValidator, Ownable {
         );
 
         uint256 validatodIdx = validatorSet.length;
-        for (uint256 i = 0; i < 20; i++) {
+        for (uint256 i = 0; i < 5; i++) {
             // 1. found validator
             for (uint256 j = 0; j < validatorSet.length; j++) {
                 if (validatorSet[j].node_id == vdata[i].node_id) {
@@ -143,8 +139,16 @@ contract SignatureValidator is ISignatureValidator, Ownable {
                     break;
                 }
             }
-
-            require(validatodIdx != validatorSet.length, "wrong node_id");
+            // skip others node_ids and already checked node_ids
+            if (
+                validatodIdx == validatorSet.length ||
+                (signedBlocks[validatorSet[validatodIdx].node_id][
+                    test_root_hash
+                ] == true)
+            ) {
+                continue;
+            }
+            // require(validatodIdx != validatorSet.length, "wrong node_id");
             if (
                 Ed25519.verify(
                     validatorSet[validatodIdx].pubkey,
@@ -161,7 +165,7 @@ contract SignatureValidator is ISignatureValidator, Ownable {
     }
 
     function initValidators() public onlyOwner returns (bytes32) {
-        require(validatorSet[0].weight == 0, "current validators not empty");
+        // require(validatorSet[0].weight == 0, "current validators not empty");
 
         validatorSet = candidatesForValidatorSet;
         delete candidatesForValidatorSet;
@@ -218,7 +222,7 @@ contract SignatureValidator is ISignatureValidator, Ownable {
             .parseCandidatesRootBlock(boc, rootIdx, treeOfCells);
 
         for (uint256 i = 0; i < 32; i++) {
-            for (uint256 j = 0; j < 100; j++) {
+            for (uint256 j = 0; j < 20; j++) {
                 // is empty
                 if (candidatesForValidatorSet[j].weight == 0) {
                     candidatesTotalWeight += validators[i].weight;
@@ -269,7 +273,7 @@ contract SignatureValidator is ISignatureValidator, Ownable {
             .parsePartValidators(data, cellIdx, cells, prefixLength);
 
         for (uint256 i = 0; i < 32; i++) {
-            for (uint256 j = 0; j < 100; j++) {
+            for (uint256 j = 0; j < 20; j++) {
                 // is empty
                 if (candidatesForValidatorSet[j].weight == 0) {
                     candidatesTotalWeight += validators[i].weight;
