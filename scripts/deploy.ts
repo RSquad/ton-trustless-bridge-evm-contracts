@@ -46,37 +46,37 @@ async function main() {
   const TreeOfCellsParser = await ethers.getContractFactory(
     "TreeOfCellsParser"
   );
-  const tocParser = await TreeOfCellsParser.attach('0xa5E2c9c2e13b858E6f13F55E83D6e00507DC4d3c');
-  // const tocParser = await TreeOfCellsParser.deploy();
-  // await tocParser.deployed();
+  // const tocParser = await TreeOfCellsParser.attach('0xa5E2c9c2e13b858E6f13F55E83D6e00507DC4d3c');
+  const tocParser = await TreeOfCellsParser.deploy();
+  await tocParser.deployed();
   console.log("tocParser deployed to:", tocParser.address);
   const BlockParser = await ethers.getContractFactory("BlockParser");
-  const blockParser = await BlockParser.attach('0x53B7E6EBE6d3284B7E38082f8B5EfFBa4De0E04F')
-  // const blockParser = await BlockParser.deploy();
-  // await blockParser.deployed();
+  // const blockParser = await BlockParser.attach('0x53B7E6EBE6d3284B7E38082f8B5EfFBa4De0E04F')
+  const blockParser = await BlockParser.deploy();
+  await blockParser.deployed();
   console.log("blockParser deployed to:", blockParser.address);
   const SignatureValidator = await ethers.getContractFactory(
     "SignatureValidator"
   );
-  const signatureValidator = await SignatureValidator.attach('0xd1614C0eb3c3E2811A68c762013361e0d9F173Dc')
-  // const signatureValidator = await SignatureValidator.deploy(
-  //   blockParser.address
-  // );
-  // await signatureValidator.deployed();
+  // const signatureValidator = await SignatureValidator.attach('0xd1614C0eb3c3E2811A68c762013361e0d9F173Dc')
+  const signatureValidator = await SignatureValidator.deploy(
+    blockParser.address
+  );
+  await signatureValidator.deployed();
   console.log("signatureValidator deployed to:", signatureValidator.address);
   const ShardValidator = await ethers.getContractFactory("ShardValidator");
-  const shardValidator = await ShardValidator.attach('0x0eb0076a7cf454917EbE7e3d9a4a9a03F63A20aF');
-  // const shardValidator = await ShardValidator.deploy();
-  // await shardValidator.deployed();
+  // const shardValidator = await ShardValidator.attach('0x0eb0076a7cf454917EbE7e3d9a4a9a03F63A20aF');
+  const shardValidator = await ShardValidator.deploy();
+  await shardValidator.deployed();
   console.log("shardValidator deployed to:", shardValidator.address);
   const Validator = await ethers.getContractFactory("Validator");
-  const validator = await Validator.attach('0x6493c834Eb5E8Ea181b90a485F5aC1bA3B19b47b')
-  // const validator = await Validator.deploy(
-  //   signatureValidator.address,
-  //   shardValidator.address,
-  //   tocParser.address
-  // );
-  // await validator.deployed();
+  // const validator = await Validator.attach('0x6493c834Eb5E8Ea181b90a485F5aC1bA3B19b47b')
+  const validator = await Validator.deploy(
+    signatureValidator.address,
+    shardValidator.address,
+    tocParser.address
+  );
+  await validator.deployed();
   console.log("validator deployed to:", validator.address);
   // signatureValidator.transferOwnership(validator.address);
   const TransactionParser = await ethers.getContractFactory(
@@ -116,6 +116,16 @@ async function main() {
   // await adapter.deployed();
   // console.log("adapter deployed to:", adapter.address);
   // adapter.transferOwnership("0x8B77aC712ff9cd865AbfAB8E98B95f4e287cBFBB");
+
+  // const ethers = require('ethers');
+
+  // const eventName = "SwapEthereumInitialized(uint256,uint256)";
+  // const topicId = ethers.utils.id(eventName);
+  // console.log('mint', topicId);
+
+  // const eventName2 = "SwapWTONInitialized(uint256,uint256)";
+  // const topicId2 = ethers.utils.id(eventName2);
+  // console.log('burn', topicId2);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

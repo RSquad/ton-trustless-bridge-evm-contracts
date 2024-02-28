@@ -66,7 +66,7 @@ contract Adapter is BitReader, Ownable, IBaseAdapter {
 
     function swapToken(address from, uint256 amount, uint256 to) public {
         _token.burn(from, amount);
-        emit SwapWTONInitialized(to, amount);
+        emit SwapWTONInitialized(to, amount / 1e9);
     }
 
     function getDataFromMessages(
