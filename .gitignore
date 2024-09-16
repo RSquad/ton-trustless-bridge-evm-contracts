@@ -2,11 +2,29 @@ node_modules
 .env
 coverage
 coverage.json
-typechain
-typechain-types
-
 #Hardhat files
 cache
 artifacts
-
+out
 .DS_Store
+
+
+# Build results
+/target
+
+# Cargo+Git helper file (https://github.com/rust-lang/cargo/blob/0.44.1/src/cargo/sources/git/utils.rs#L320-L327)
+.cargo-ok
+
+# Text file backups
+**/*.rs.bk
+
+# # wasm file
+# **/*.wasm
+# !rust-contracts-sdk/packages/contracts-build/data/oraiswap-token.wasm
+
+# code analyzer
+.scannerwork/
+clippy-report.json
+
+# code coverage
+tarpaulin-report.html
